@@ -31,6 +31,7 @@
             --bg-tab: rgba(255, 255, 255, 0.85); --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
 
+        /* --- 2. RESET & BASE --- */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         
         body {
@@ -39,7 +40,7 @@
             display: flex; flex-direction: column; overflow: hidden; line-height: 1.6;
         }
 
-        /* --- 2. HEADER --- */
+        /* --- 3. HEADER --- */
         header {
             background-color: var(--header-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
             padding: 0 1.5rem; padding-top: env(safe-area-inset-top); height: calc(60px + env(safe-area-inset-top));
@@ -58,56 +59,83 @@
 
         .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-main); cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
-        /* --- 3. HOME VIEW --- */
+        /* --- 4. HOME VIEW --- */
         #home-view { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; overflow-y: auto; }
         .home-title { font-size: 2.5rem; font-weight: 900; text-align: center; margin-bottom: 3rem; background: linear-gradient(135deg, var(--accent-color), #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .menu-list { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 400px; }
         .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; cursor: pointer; transition: all 0.2s ease; }
         .menu-item:hover { border-color: var(--accent-color); transform: translateX(5px); background: var(--bg-input); }
+        .menu-label { font-weight: 800; font-size: 1.2rem; }
+        .menu-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
 
-        /* --- 4. APP VIEW & SIDEBAR --- */
+        /* --- 5. APP VIEW & SIDEBAR --- */
         #app-view { display: none; flex: 1; overflow: hidden; position: relative; }
         aside { width: 340px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 40; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .search-box { padding: 1rem; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 5; }
         .search-input { width: 100%; padding: 0.85rem; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0.5rem; outline: none; }
+        
         .list-area { flex: 1; overflow-y: auto; padding: 0.5rem; }
         .category-header { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; padding: 1.5rem 0.5rem 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); }
-        .case-btn { width: 100%; text-align: left; padding: 1rem 0.75rem; background: none; border: none; color: var(--text-main); font-size: 0.95rem; border-radius: 0.5rem; cursor: pointer; }
+        .case-btn { width: 100%; text-align: left; padding: 1rem 0.75rem; background: none; border: none; color: var(--text-main); font-size: 0.95rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; }
         .case-btn.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 700; border-left: 3px solid var(--accent-color); }
 
-        /* --- 5. MAIN CONTENT --- */
+        /* Sidebar Footer / Admin Section */
+        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-color); background: var(--bg-sidebar); }
+        .admin-login-btn { background: none; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; padding: 0.6rem; border-radius: 0.5rem; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
+        .admin-panel { display: none; margin-top: 0.5rem; flex-direction: column; gap: 8px; }
+        .import-btn { background: none; border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: 700; font-size: 0.8rem; padding: 0.7rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; }
+        .import-btn:hover { background: var(--accent-bg); }
+
+        /* --- 6. MAIN CONTENT --- */
         main { flex: 1; overflow-y: auto; padding: 0 2rem; background: var(--bg-body); scroll-behavior: smooth; }
         .details-header { padding: 2rem 0 1rem 0; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: end; }
         .category-tag { font-size: 0.8rem; color: var(--accent-color); font-weight: 700; text-transform: uppercase; }
+
         .tabs-wrapper { position: sticky; top: 0; z-index: 10; padding: 0.75rem 0; background: var(--bg-body); border-bottom: 1px solid var(--border-color); margin: 0 -2rem 1.5rem -2rem; padding-left: 2rem; }
         .tabs { display: flex; gap: 0.75rem; overflow-x: auto; scrollbar-width: none; }
-        .tab-btn { flex: 0 0 auto; padding: 0.65rem 1.2rem; border: 1px solid var(--border-color); background: var(--bg-tab); color: var(--text-muted); border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        .tab-btn { flex: 0 0 auto; padding: 0.65rem 1.2rem; border: 1px solid var(--border-color); background: var(--bg-tab); color: var(--text-muted); border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
         .tab-btn.active { background: var(--bg-card); color: var(--text-main); border-color: var(--accent-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
         .content-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 2.5rem; min-height: 500px; margin-bottom: 2rem; }
-        .tab-content { display: none; font-size: 1.1rem; }
+        .tab-content { display: none; animation: fadeIn 0.3s; font-size: 1.1rem; }
         .tab-content.active { display: block; }
         .footer-nav { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: 5rem; opacity: 0; transform: translateY(20px); transition: 0.4s; }
         .footer-nav.visible { opacity: 1; transform: translateY(0); }
         .nav-btn { flex: 1; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; max-width: 48%; }
 
-        /* --- 6. MODALS & ADMIN --- */
+        /* --- 7. MODALS & FORMS --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(8px); }
         .modal-overlay.active { display: flex; }
         .modal-card { background: var(--bg-card); width: 100%; max-width: 650px; border-radius: 2rem; border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
         .modal-header { padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
-        .form-input, .form-textarea { width: 100%; padding: 0.8rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-main); outline: none; margin-bottom: 1rem; }
-        .import-area { width: 100%; height: 300px; background: var(--bg-input); color: #10b981; font-family: monospace; padding: 1rem; border-radius: 1rem; }
-        .fab { position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; background: var(--accent-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .form-group { margin-bottom: 1rem; }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.4rem; }
+        .form-input, .form-textarea { width: 100%; padding: 0.8rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-main); outline: none; }
+        .form-textarea { height: 120px; resize: vertical; font-size: 0.95rem; }
+        .import-area { width: 100%; height: 350px; background: var(--bg-input); color: #10b981; border: 1px solid var(--border-color); padding: 1rem; font-family: monospace; border-radius: 1rem; font-size: 0.85rem; resize: none; }
+
+        .btn { padding: 0.9rem 1.2rem; border-radius: 0.6rem; border: none; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+        .btn-primary { background: var(--accent-color); color: white; }
+        .btn-danger { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.8rem; }
+        .btn-ghost { background: none; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.85rem; }
+
+        .fab { position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; background: var(--accent-color); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 100; transition: transform 0.2s; }
+        .fab:hover { transform: scale(1.1); }
 
         .menu-toggle { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
-        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 35; }
+        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 35; backdrop-filter: blur(5px); }
+
         @media (max-width: 768px) {
             .menu-toggle { display: block; }
             aside { position: absolute; height: 100%; width: 85%; transform: translateX(-100%); }
-            aside.open { transform: translateX(0); }
+            aside.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
             .backdrop.open { display: block; }
+            main { padding: 0 1rem; }
+            .content-card { padding: 1.5rem; }
+            .tabs-wrapper { margin: 0 -1rem 1rem -1rem; padding-left: 1rem; }
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -131,7 +159,7 @@
         <h2 class="home-title">Internal Medicine Notes</h2>
         <div class="menu-list">
             <div class="menu-item" onclick="startApp('diseases')">
-                <div><div class="menu-label">Diseases</div><div class="menu-sub">Must Know conditions</div></div>
+                <div><div class="menu-label">Diseases</div><div class="menu-sub">Core medical conditions</div></div>
                 <div style="font-size: 2rem;">🧪</div>
             </div>
             <div class="menu-item" onclick="startApp('general')">
@@ -146,9 +174,11 @@
         <aside id="sidebar">
             <div class="search-box"><input type="text" id="searchInput" class="search-input" placeholder="Search topics..."></div>
             <div id="listArea" class="list-area"></div>
-            <div style="padding: 1rem; border-top: 1px solid var(--border-color);">
-                <button onclick="adminLogin()" id="adminBtn" style="background:none; border:1px solid var(--border-color); color:var(--text-muted); width:100%; padding:0.6rem; border-radius:0.5rem; font-size:0.75rem; cursor:pointer;">Admin Access</button>
-                <button id="importBtn" onclick="openImport()" class="btn btn-primary" style="display:none; width:100%; margin-top:0.5rem;">Bulk Import</button>
+            <div class="sidebar-footer">
+                <button onclick="adminLogin()" id="adminBtn" class="admin-login-btn">Admin Access</button>
+                <div id="adminPanel" class="admin-panel">
+                    <button onclick="openImport()" class="import-btn">Bulk Import Tools</button>
+                </div>
             </div>
         </aside>
 
@@ -161,8 +191,8 @@
                 <div class="details-header">
                     <div><div id="categoryTag" class="category-tag">Category</div><h2 id="contentName">Topic Name</h2></div>
                     <div id="itemAdminControls" style="display:none; gap:10px;">
-                        <button onclick="editCurrentItem()" style="background:none; border:1px solid var(--border-color); color:var(--text-muted); padding:5px 10px; border-radius:5px; cursor:pointer;">Edit</button>
-                        <button onclick="deleteCurrentItem()" style="background:rgba(220,38,38,0.1); border:1px solid #ef4444; color:#ef4444; padding:5px 10px; border-radius:5px; cursor:pointer;">Delete</button>
+                        <button onclick="editCurrentItem()" class="btn btn-ghost">Edit Topic</button>
+                        <button onclick="deleteCurrentItem()" class="btn btn-danger">Delete</button>
                     </div>
                 </div>
                 <div class="tabs-wrapper"><div id="tabsContainer" class="tabs"></div></div>
@@ -172,15 +202,15 @@
         </main>
     </div>
 
-    <div id="fabAdd" class="fab" style="display:none;" onclick="openManualAdd()">+</div>
+    <div id="fabAdd" class="fab" onclick="openManualAdd()">+</div>
 
     <div id="editorModal" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-header"><h3 id="editorModalTitle">Edit Topic</h3><button onclick="closeEditor()">×</button></div>
             <div class="modal-body">
                 <input type="hidden" id="editItemId">
-                <label class="form-label">Title</label><input type="text" id="editName" class="form-input">
-                <label class="form-label">Category</label><input type="text" id="editCategory" class="form-input">
+                <div class="form-group"><label class="form-label">Title</label><input type="text" id="editName" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Category</label><input type="text" id="editCategory" class="form-input"></div>
                 <div id="dynamicTabFields"></div>
                 <button onclick="addNewTabField()" class="btn btn-ghost" style="width:100%; border:1px dashed var(--border-color); margin-top:10px;">+ Add New Tab</button>
                 <button onclick="saveManualEdit()" class="btn btn-primary" style="width:100%; margin-top:20px;">Save All Changes</button>
@@ -213,7 +243,11 @@
         let currentMode = null, cachedData = [], selectedId = null, isAdmin = false;
         const mainScroll = document.getElementById('mainScroll');
 
-        function goHome() { document.getElementById('home-view').style.display='flex'; document.getElementById('app-view').style.display='none'; }
+        function goHome() { 
+            document.getElementById('home-view').style.display='flex'; 
+            document.getElementById('app-view').style.display='none';
+            document.getElementById('mainHeader').classList.remove('scrolled');
+        }
 
         async function startApp(mode) {
             currentMode = mode;
@@ -228,8 +262,25 @@
             });
         }
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('backdrop').classList.toggle('open'); }
-        function toggleTheme() { /* theme toggle logic */ }
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('open'); 
+            document.getElementById('backdrop').classList.toggle('open'); 
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        }
+
+        mainScroll.onscroll = () => {
+            if (mainScroll.scrollTop > 100) document.getElementById('mainHeader').classList.add('scrolled');
+            else document.getElementById('mainHeader').classList.remove('scrolled');
+            const footer = document.getElementById('footerNav');
+            if (mainScroll.scrollTop + mainScroll.clientHeight >= mainScroll.scrollHeight - 50) footer.classList.add('visible');
+            else footer.classList.remove('visible');
+        };
 
         function renderSidebar(filter = '') {
             const area = document.getElementById('listArea'); area.innerHTML = '';
@@ -237,7 +288,7 @@
             categories.forEach(cat => {
                 const items = cachedData.filter(d => d.category === cat && d.name.toLowerCase().includes(filter.toLowerCase()));
                 if (items.length > 0) {
-                    const h = document.createElement('div'); h.className = 'category-header'; h.innerText = cat || "Uncategorized"; area.appendChild(h);
+                    const h = document.createElement('div'); h.className = 'category-header'; h.innerText = cat || "General"; area.appendChild(h);
                     items.forEach(item => {
                         const b = document.createElement('button'); b.className = 'case-btn'; b.innerText = item.name;
                         if(selectedId === item.id) b.classList.add('active');
@@ -257,59 +308,128 @@
             document.getElementById('detailsContainer').style.display = 'block';
             document.getElementById('contentName').innerText = item.name;
             document.getElementById('categoryTag').innerText = item.category;
+            document.getElementById('headerCaseTitle').innerText = item.name;
+            document.getElementById('headerCaseCat').innerText = item.category;
             document.getElementById('itemAdminControls').style.display = isAdmin ? 'flex' : 'none';
             const tabs = document.getElementById('tabsContainer'), card = document.getElementById('contentCard');
             tabs.innerHTML = ''; card.innerHTML = '';
             const ignored = ['id', 'category', 'name'];
-            Object.keys(item).filter(k => !ignored.includes(k)).forEach((key, idx) => {
+            Object.keys(item).filter(k => !ignored.includes(k)).sort().forEach((key, idx) => {
                 const t = document.createElement('button'); t.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
                 t.innerText = key.replace(/_/g, ' ').toUpperCase();
                 t.onclick = () => {
                     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); t.classList.add('active');
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     document.getElementById(`content-${key}`).classList.add('active');
+                    mainScroll.scrollTo({top: 0, behavior: 'smooth'});
                 };
                 tabs.appendChild(t);
                 const d = document.createElement('div'); d.id = `content-${key}`; d.className = `tab-content ${idx === 0 ? 'active' : ''}`; d.innerHTML = item[key]; card.appendChild(d);
             });
+            renderFooterNav(id);
         }
 
-        // --- IMPROVED ROBUST PARSER ---
+        function renderFooterNav(id) {
+            const idx = cachedData.findIndex(d => d.id === id);
+            const prev = cachedData[idx - 1], next = cachedData[idx + 1];
+            const nav = document.getElementById('footerNav');
+            nav.innerHTML = '';
+            if(prev) {
+                const b = document.createElement('button'); b.className = 'nav-btn';
+                b.innerHTML = `← <div><div class="nav-label">Back</div>${prev.name}</div>`;
+                b.onclick = () => selectItem(prev.id); nav.appendChild(b);
+            } else { nav.appendChild(document.createElement('div')); }
+            if(next) {
+                const b = document.createElement('button'); b.className = 'nav-btn nav-btn-next';
+                b.innerHTML = `<div><div class="nav-label">Next</div>${next.name}</div> →`;
+                b.onclick = () => selectItem(next.id); nav.appendChild(b);
+            }
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        function adminLogin() {
+            if(prompt("Passcode:") === "admin123") {
+                isAdmin = true;
+                document.getElementById('adminPanel').style.display='flex';
+                document.getElementById('fabAdd').style.display='flex';
+                document.getElementById('adminBtn').innerText = "Admin: ON";
+                if(selectedId) selectItem(selectedId);
+            }
+        }
+
+        function openManualAdd() {
+            document.getElementById('editItemId').value = "";
+            document.getElementById('editName').value = "";
+            document.getElementById('editCategory').value = "";
+            document.getElementById('dynamicTabFields').innerHTML = "";
+            document.getElementById('editorModalTitle').innerText = "Create New Topic";
+            addNewTabField();
+            document.getElementById('editorModal').classList.add('active');
+        }
+
+        function editCurrentItem() {
+            const item = cachedData.find(d => d.id === selectedId);
+            document.getElementById('editItemId').value = item.id;
+            document.getElementById('editName').value = item.name;
+            document.getElementById('editCategory').value = item.category;
+            const container = document.getElementById('dynamicTabFields');
+            container.innerHTML = "";
+            const ignored = ['id', 'category', 'name'];
+            Object.keys(item).filter(k => !ignored.includes(k)).forEach(key => {
+                addNewTabField(key.replace(/_/g, ' '), item[key]);
+            });
+            document.getElementById('editorModal').classList.add('active');
+        }
+
+        function addNewTabField(label = "", content = "") {
+            const div = document.createElement('div');
+            div.className = "form-group tab-field-row";
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;"><label class="form-label">Tab Title</label><button onclick="this.parentElement.parentElement.remove()" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:0.7rem">Remove</button></div>
+                <input type="text" class="form-input tab-label" value="${label}">
+                <textarea class="form-textarea tab-content-val">${content.replace(/<br>/g, '\n')}</textarea>
+            `;
+            document.getElementById('dynamicTabFields').appendChild(div);
+        }
+
+        async function saveManualEdit() {
+            const id = document.getElementById('editItemId').value;
+            const data = { name: document.getElementById('editName').value, category: document.getElementById('editCategory').value };
+            document.querySelectorAll('.tab-field-row').forEach(row => {
+                const label = row.querySelector('.tab-label').value.replace(/\s+/g, '_');
+                const val = row.querySelector('.tab-content-val').value.replace(/\n/g, '<br>');
+                if(label) data[label] = val;
+            });
+            if(id) await db.collection(currentMode).doc(id).update(data);
+            else await db.collection(currentMode).add(data);
+            closeEditor();
+        }
+
+        async function deleteCurrentItem() {
+            if(confirm("Delete permanently?")) {
+                await db.collection(currentMode).doc(selectedId).delete();
+                selectedId = null; goHome();
+            }
+        }
+
         async function processImport() {
             const text = document.getElementById('importText').value;
             try {
-                // Support both straight and smart quotes
-                const getVal = (regex) => {
-                    const match = text.match(regex);
-                    return match ? match[1] : null;
-                };
-
+                const getVal = (regex) => { const match = text.match(regex); return match ? match[1] : null; };
                 const title = getVal(/Title:\s*["“]([^"”]+)["”]/i);
-                const category = getVal(/Category:\s*["“]([^"”]+)["”]/i) || "General";
+                const cat = getVal(/Category:\s*["“]([^"”]+)["”]/i) || "General";
                 const type = getVal(/Type:\s*["“]([^"”]+)["”]/i) || "diseases";
-
-                if (!title) throw new Error("Title is missing or quote format is wrong.");
-
-                const data = { name: title, category: category };
-                
-                // Flexible Tab Detection
+                const data = { name: title, category: cat };
                 const tabRegex = /Tab\d+:\s*["“]([^"”]+)["”]:\s*["“]([^"”]+)["”]/g;
                 let match;
-                while ((match = tabRegex.exec(text)) !== null) {
-                    data[match[1].replace(/\s+/g, '_')] = match[2].replace(/\\n/g, '<br>');
-                }
-
-                await db.collection(type).add(data);
-                alert("Notes added!"); closeModal();
-            } catch (e) { alert("Format Error: " + e.message); }
+                while ((match = tabRegex.exec(text)) !== null) { data[match[1].replace(/\s+/g, '_')] = match[2].replace(/\\n/g, '<br>'); }
+                await db.collection(type).add(data); alert("Upload Successful!"); closeModal();
+            } catch (e) { alert("Format Error."); }
         }
 
-        function adminLogin() { if(prompt("Passcode:") === "admin123") { isAdmin = true; document.getElementById('importBtn').style.display='block'; document.getElementById('fabAdd').style.display='flex'; document.getElementById('adminBtn').innerText = "Admin On"; if(selectedId) selectItem(selectedId); } }
         function openImport() { document.getElementById('importModal').classList.add('active'); }
         function closeModal() { document.getElementById('importModal').classList.remove('active'); }
-        function openManualAdd() { /* add logic */ document.getElementById('editorModal').classList.add('active'); }
         function closeEditor() { document.getElementById('editorModal').classList.remove('active'); }
-        function addNewTabField(l="", c="") { /* same as previous turn */ }
         document.getElementById('searchInput').oninput = (e) => renderSidebar(e.target.value);
     </script>
 </body>
