@@ -3,232 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>IM Notes Helper</title>
-
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>IM Checklist & Notes</title>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
-        /* --- 1. CSS VARIABLES --- */
+        /* --- 1. CSS VARIABLES (Obsidian-inspired) --- */
         :root {
-            --bg-body: #000000; --bg-sidebar: #050505; --bg-card: #0a0a0a;
-            --bg-box: #111111; --bg-input: #171717; --border-color: #27272a;
-            --text-main: #e2e8f0; --text-muted: #94a3b8; --accent-color: #3b82f6;
-            --accent-bg: #172554; --accent-text: #bfdbfe; --header-bg: rgba(0, 0, 0, 0.85);
-            --bg-tab: rgba(30, 30, 30, 0.6); --shadow-card: none;
-        }
-
-        [data-theme="light"] {
-            --bg-body: #f0f4f8; --bg-sidebar: #ffffff; --bg-card: #ffffff;
-            --bg-box: #f8fafc; --bg-input: #f1f5f9; --border-color: #e2e8f0;
-            --text-main: #1e293b; --text-muted: #64748b; --accent-color: #0284c7;
-            --accent-bg: #e0f2fe; --accent-text: #0c4a6e; --header-bg: rgba(255, 255, 255, 0.95);
-            --bg-tab: rgba(255, 255, 255, 0.85); --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --bg-body: #0e0e0e; --bg-sidebar: #161616; --bg-card: #1e1e1e;
+            --text-main: #dcddde; --text-muted: #787878; --accent-color: #7f6df2;
+            --border-color: #2f2f2f; --font-editor: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
         }
 
         /* --- 2. RESET & BASE --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body); color: var(--text-main); height: 100dvh;
-            display: flex; flex-direction: column; overflow: hidden; line-height: 1.6;
+            font-family: var(--font-editor); background-color: var(--bg-body); color: var(--text-main);
+            height: 100dvh; display: flex; overflow: hidden; font-size: 15px;
         }
 
-        /* --- 3. HEADER --- */
-        header {
-            background-color: var(--header-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 0 1.5rem; padding-top: env(safe-area-inset-top); height: calc(60px + env(safe-area-inset-top));
-            display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);
-            z-index: 50; flex-shrink: 0;
+        /* --- 3. SIDEBAR (The Checklist) --- */
+        aside {
+            width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; z-index: 50; transition: transform 0.3s ease;
         }
-        .header-left { display: flex; align-items: center; gap: 0.75rem; flex: 1; overflow: hidden; }
-        .logo-icon { font-size: 1.2rem; cursor: pointer; }
-        .title-container { position: relative; height: 100%; display: flex; align-items: center; flex: 1; }
-        .app-title { font-size: 1.25rem; font-weight: 800; color: var(--accent-color); position: absolute; left: 0; transition: all 0.3s; }
-        .dynamic-header-info { position: absolute; left: 0; display: flex; flex-direction: column; transition: all 0.3s; transform: translateY(100%); opacity: 0; pointer-events: none; }
-        .header-case-title { font-size: 0.95rem; font-weight: 700; color: var(--text-main); white-space: nowrap; }
-        .header-case-cat { font-size: 0.7rem; color: var(--accent-color); font-weight: 600; text-transform: uppercase; }
-        header.scrolled .app-title { transform: translateY(-150%); opacity: 0; }
-        header.scrolled .dynamic-header-info { transform: translateY(0); opacity: 1; }
 
-        .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-main); cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        .sidebar-header { padding: 1.2rem; border-bottom: 1px solid var(--border-color); font-weight: 700; font-size: 1.1rem; letter-spacing: 0.5px; display: flex; align-items: center; gap: 10px; }
+        .progress-bar-container { height: 4px; background: #333; margin-top: 8px; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent-color); width: 0%; transition: width 0.5s; }
 
-        /* --- 4. HOME VIEW --- */
-        #home-view { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; overflow-y: auto; }
-        .home-title { font-size: 2.5rem; font-weight: 900; text-align: center; margin-bottom: 3rem; background: linear-gradient(135deg, var(--accent-color), #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .menu-list { display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 400px; }
-        .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; cursor: pointer; transition: all 0.2s ease; }
-        .menu-item:hover { border-color: var(--accent-color); transform: translateX(5px); background: var(--bg-input); }
-        .menu-label { font-weight: 800; font-size: 1.2rem; }
-        .menu-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-
-        /* --- 5. APP VIEW & SIDEBAR --- */
-        #app-view { display: none; flex: 1; overflow: hidden; position: relative; }
-        aside { width: 340px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 40; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .search-box { padding: 1rem; background: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 5; }
-        .search-input { width: 100%; padding: 0.85rem; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0.5rem; outline: none; }
+        .checklist-container { flex: 1; overflow-y: auto; padding: 0.5rem 0; }
         
-        .list-area { flex: 1; overflow-y: auto; padding: 0.5rem; }
-        .category-header { font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; padding: 1.5rem 0.5rem 0.5rem 0.75rem; border-bottom: 1px solid var(--border-color); }
-        .case-btn { width: 100%; text-align: left; padding: 1rem 0.75rem; background: none; border: none; color: var(--text-main); font-size: 0.95rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; }
-        .case-btn.active { background: var(--accent-bg); color: var(--accent-text); font-weight: 700; border-left: 3px solid var(--accent-color); }
+        /* Tree View Styling */
+        .tree-category { padding: 0.8rem 1.2rem; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; margin-top: 1rem; letter-spacing: 1px; }
+        
+        .tree-item { cursor: pointer; user-select: none; }
+        .tree-header { padding: 0.6rem 1.2rem; font-size: 0.95rem; font-weight: 600; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .tree-header:hover { background: #252525; }
+        .tree-header::after { content: '›'; transform: rotate(90deg); font-family: monospace; transition: transform 0.2s; }
+        .tree-item.collapsed .tree-header::after { transform: rotate(0deg); }
+        
+        .tree-children { display: block; padding-left: 0; border-left: 1px solid var(--border-color); margin-left: 1.5rem; }
+        .tree-item.collapsed .tree-children { display: none; }
 
-        /* Sidebar Footer / Admin Section */
-        .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-color); background: var(--bg-sidebar); }
-        .admin-login-btn { background: none; border: 1px solid var(--border-color); color: var(--text-muted); width: 100%; padding: 0.6rem; border-radius: 0.5rem; font-size: 0.75rem; cursor: pointer; font-weight: 600; }
-        .admin-panel { display: none; margin-top: 0.5rem; flex-direction: column; gap: 8px; }
-        .import-btn { background: none; border: 1px solid var(--accent-color); color: var(--accent-color); font-weight: 700; font-size: 0.8rem; padding: 0.7rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; }
-        .import-btn:hover { background: var(--accent-bg); }
+        .tree-leaf {
+            padding: 0.5rem 1rem; margin: 2px 0; font-size: 0.9rem; color: #a0a0a0; cursor: pointer;
+            border-radius: 4px; margin-right: 0.5rem; transition: all 0.15s; position: relative;
+        }
+        .tree-leaf:hover { background: #2a2a2a; color: #fff; }
+        .tree-leaf.active { background: rgba(127, 109, 242, 0.15); color: var(--accent-color); font-weight: 600; border-left: 3px solid var(--accent-color); }
+        
+        /* Status Indicator (Dot) */
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: #333; }
+        .status-dot.done { background: #4ade80; }
 
-        /* --- 6. MAIN CONTENT --- */
-        main { flex: 1; overflow-y: auto; padding: 0 2rem; background: var(--bg-body); scroll-behavior: smooth; }
-        .details-header { padding: 2rem 0 1rem 0; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: end; }
-        .category-tag { font-size: 0.8rem; color: var(--accent-color); font-weight: 700; text-transform: uppercase; }
+        /* --- 4. MAIN EDITOR (Obsidian Style) --- */
+        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); position: relative; }
+        
+        .editor-header {
+            padding: 1rem 3rem; display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid transparent; transition: border 0.3s;
+        }
+        .editor-header.scrolled { border-bottom: 1px solid var(--border-color); background: rgba(14,14,14,0.95); backdrop-filter: blur(5px); }
+        
+        .breadcrumbs { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; font-family: var(--font-mono); }
+        .note-title { font-size: 2rem; font-weight: 800; color: var(--text-main); line-height: 1.2; border: none; background: transparent; width: 100%; }
 
-        .tabs-wrapper { position: sticky; top: 0; z-index: 10; padding: 0.75rem 0; background: var(--bg-body); border-bottom: 1px solid var(--border-color); margin: 0 -2rem 1.5rem -2rem; padding-left: 2rem; }
-        .tabs { display: flex; gap: 0.75rem; overflow-x: auto; scrollbar-width: none; }
-        .tab-btn { flex: 0 0 auto; padding: 0.65rem 1.2rem; border: 1px solid var(--border-color); background: var(--bg-tab); color: var(--text-muted); border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
-        .tab-btn.active { background: var(--bg-card); color: var(--text-main); border-color: var(--accent-color); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .editor-content-wrapper { flex: 1; overflow-y: auto; padding: 1rem 3rem 5rem 3rem; scroll-behavior: smooth; }
+        
+        /* The Actual Editor Area */
+        #editor {
+            width: 100%; min-height: 60vh; font-size: 1.1rem; line-height: 1.7; color: #d4d4d4;
+            border: none; resize: none; background: transparent; font-family: var(--font-editor);
+            white-space: pre-wrap;
+        }
+        #editor:empty:before { content: 'Start typing your notes here...'; color: #444; }
 
-        .content-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1.5rem; padding: 2.5rem; min-height: 500px; margin-bottom: 2rem; }
-        .tab-content { display: none; animation: fadeIn 0.3s; font-size: 1.1rem; }
-        .tab-content.active { display: block; }
-        .footer-nav { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: 5rem; opacity: 0; transform: translateY(20px); transition: 0.4s; }
-        .footer-nav.visible { opacity: 1; transform: translateY(0); }
-        .nav-btn { flex: 1; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 1rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; max-width: 48%; }
+        /* Formatting Toolbar (Floating) */
+        .toolbar {
+            position: fixed; bottom: 2rem; right: 2rem; background: #252525; padding: 0.5rem;
+            border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .toolbar.visible { opacity: 1; pointer-events: auto; }
+        .tool-btn { background: none; border: none; color: #aaa; width: 36px; height: 36px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .tool-btn:hover { background: #333; color: white; }
 
-        /* --- 7. MODALS & FORMS --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(8px); }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: var(--bg-card); width: 100%; max-width: 650px; border-radius: 2rem; border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
-        .modal-header { padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-        .modal-body { padding: 1.5rem; overflow-y: auto; flex: 1; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.4rem; }
-        .form-input, .form-textarea { width: 100%; padding: 0.8rem; background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 0.5rem; color: var(--text-main); outline: none; }
-        .form-textarea { height: 120px; resize: vertical; font-size: 0.95rem; }
-        .import-area { width: 100%; height: 350px; background: var(--bg-input); color: #10b981; border: 1px solid var(--border-color); padding: 1rem; font-family: monospace; border-radius: 1rem; font-size: 0.85rem; resize: none; }
-
-        .btn { padding: 0.9rem 1.2rem; border-radius: 0.6rem; border: none; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
-        .btn-primary { background: var(--accent-color); color: white; }
-        .btn-danger { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.8rem; }
-        .btn-ghost { background: none; color: var(--text-muted); border: 1px solid var(--border-color); font-size: 0.85rem; }
-
-        .fab { position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; background: var(--accent-color); color: white; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); cursor: pointer; z-index: 100; transition: transform 0.2s; }
-        .fab:hover { transform: scale(1.1); }
-
-        .menu-toggle { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
-        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 35; backdrop-filter: blur(5px); }
+        /* Mobile Adjustments */
+        .menu-toggle { display: none; position: absolute; top: 1rem; left: 1rem; z-index: 100; background: none; border: none; color: white; font-size: 1.5rem; }
+        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 40; backdrop-filter: blur(2px); }
 
         @media (max-width: 768px) {
             .menu-toggle { display: block; }
-            aside { position: absolute; height: 100%; width: 85%; transform: translateX(-100%); }
-            aside.open { transform: translateX(0); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+            aside { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; }
+            aside.open { transform: translateX(0); box-shadow: 10px 0 50px rgba(0,0,0,0.5); }
             .backdrop.open { display: block; }
-            main { padding: 0 1rem; }
-            .content-card { padding: 1.5rem; }
-            .tabs-wrapper { margin: 0 -1rem 1rem -1rem; padding-left: 1rem; }
+            .editor-header { padding: 1rem; padding-top: 3.5rem; }
+            .editor-content-wrapper { padding: 1rem; }
+            .note-title { font-size: 1.5rem; }
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Load State */
+        .empty-state {
+            height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--text-muted); opacity: 0.5;
+        }
     </style>
 </head>
 <body>
 
-    <header id="mainHeader">
-        <div class="header-left">
-            <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-            <div class="logo-icon" onclick="goHome()">⚕️</div>
-            <div class="title-container" onclick="goHome()">
-                <h1 class="app-title">IM Notes <span id="modeBadge" class="mode-badge" style="display:none"></span></h1>
-                <div class="dynamic-header-info">
-                    <span id="headerCaseTitle" class="header-case-title">Case Name</span>
-                    <span id="headerCaseCat" class="header-case-cat">Category</span>
+    <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <div>
+                <div>IM Checklist</div>
+                <div style="font-size: 0.7rem; font-weight:400; color:#888;">Track your progress</div>
+            </div>
+        </div>
+        <div style="padding: 0 1.2rem;">
+            <div class="progress-bar-container"><div id="overallProgress" class="progress-fill"></div></div>
+        </div>
+
+        <div id="checklistContainer" class="checklist-container">
+            </div>
+    </aside>
+
+    <main>
+        <div id="emptyState" class="empty-state">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
+            <p>Select a topic from the checklist to start writing.</p>
+        </div>
+
+        <div id="editorContainer" style="display:none; height:100%; flex-direction:column;">
+            <div id="mainHeader" class="editor-header">
+                <div style="width:100%">
+                    <div id="breadcrumbs" class="breadcrumbs">Neurology / Stroke</div>
+                    <input type="text" id="noteTitleDisplay" class="note-title" value="Management">
                 </div>
+                <div id="saveIndicator" style="font-size:0.75rem; color:#4ade80; opacity:0; transition:opacity 0.5s;">Saved</div>
+            </div>
+
+            <div class="editor-content-wrapper" id="scrollArea">
+                <div id="editor" contenteditable="true" spellcheck="false"></div>
             </div>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
-    </header>
+    </main>
 
-    <div id="home-view">
-        <h2 class="home-title">Internal Medicine Notes</h2>
-        <div class="menu-list">
-            <div class="menu-item" onclick="startApp('diseases')">
-                <div><div class="menu-label">Diseases</div><div class="menu-sub">Core medical conditions</div></div>
-                <div style="font-size: 2rem;">🧪</div>
-            </div>
-            <div class="menu-item" onclick="startApp('general')">
-                <div><div class="menu-label">General Notes</div><div class="menu-sub">Clerking & Physical Exam</div></div>
-                <div style="font-size: 2rem;">🩺</div>
-            </div>
-        </div>
-    </div>
-
-    <div id="app-view">
-        <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
-        <aside id="sidebar">
-            <div class="search-box"><input type="text" id="searchInput" class="search-input" placeholder="Search topics..."></div>
-            <div id="listArea" class="list-area"></div>
-            <div class="sidebar-footer">
-                <button onclick="adminLogin()" id="adminBtn" class="admin-login-btn">Admin Access</button>
-                <div id="adminPanel" class="admin-panel">
-                    <button onclick="openImport()" class="import-btn">Bulk Import Tools</button>
-                </div>
-            </div>
-        </aside>
-
-        <main id="mainScroll">
-            <div id="welcomeState" style="text-align: center; padding-top: 8rem; color: var(--text-muted);">
-                <div style="font-size: 5rem; opacity: 0.2; margin-bottom: 1rem;">📑</div>
-                <h2>Select a Topic</h2>
-            </div>
-            <div id="detailsContainer" style="display:none;">
-                <div class="details-header">
-                    <div><div id="categoryTag" class="category-tag">Category</div><h2 id="contentName">Topic Name</h2></div>
-                    <div id="itemAdminControls" style="display:none; gap:10px;">
-                        <button onclick="editCurrentItem()" class="btn btn-ghost">Edit Topic</button>
-                        <button onclick="deleteCurrentItem()" class="btn btn-danger">Delete</button>
-                    </div>
-                </div>
-                <div class="tabs-wrapper"><div id="tabsContainer" class="tabs"></div></div>
-                <div id="contentCard" class="content-card"></div>
-                <div id="footerNav" class="footer-nav"></div>
-            </div>
-        </main>
-    </div>
-
-    <div id="fabAdd" class="fab" onclick="openManualAdd()">+</div>
-
-    <div id="editorModal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-header"><h3 id="editorModalTitle">Edit Topic</h3><button onclick="closeEditor()">×</button></div>
-            <div class="modal-body">
-                <input type="hidden" id="editItemId">
-                <div class="form-group"><label class="form-label">Title</label><input type="text" id="editName" class="form-input"></div>
-                <div class="form-group"><label class="form-label">Category</label><input type="text" id="editCategory" class="form-input"></div>
-                <div id="dynamicTabFields"></div>
-                <button onclick="addNewTabField()" class="btn btn-ghost" style="width:100%; border:1px dashed var(--border-color); margin-top:10px;">+ Add New Tab</button>
-                <button onclick="saveManualEdit()" class="btn btn-primary" style="width:100%; margin-top:20px;">Save All Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="importModal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-header"><h3>Bulk Import</h3><button onclick="closeModal()">×</button></div>
-            <div class="modal-body">
-                <textarea id="importText" class="import-area" placeholder='Title: "..." Category: "..." Type: "diseases" ...'></textarea>
-                <button onclick="processImport()" class="btn btn-primary" style="width:100%">Process & Upload</button>
-            </div>
-        </div>
+    <div id="toolbar" class="toolbar">
+        <button class="tool-btn" onclick="formatDoc('bold')">B</button>
+        <button class="tool-btn" onclick="formatDoc('italic')">I</button>
+        <button class="tool-btn" onclick="formatDoc('insertUnorderedList')">•</button>
+        <button class="tool-btn" onclick="formatDoc('h2')">H2</button>
     </div>
 
     <script>
+        // --- CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyBd9E9VkE7bllIN13NYGz801F4Jue_VzVk",
             authDomain: "im-helper-d3a4a.firebaseapp.com",
@@ -240,197 +174,266 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        let currentMode = null, cachedData = [], selectedId = null, isAdmin = false;
-        const mainScroll = document.getElementById('mainScroll');
-
-        function goHome() { 
-            document.getElementById('home-view').style.display='flex'; 
-            document.getElementById('app-view').style.display='none';
-            document.getElementById('mainHeader').classList.remove('scrolled');
-        }
-
-        async function startApp(mode) {
-            currentMode = mode;
-            document.getElementById('home-view').style.display='none';
-            document.getElementById('app-view').style.display='flex';
-            document.getElementById('modeBadge').innerText = mode.toUpperCase();
-            document.getElementById('modeBadge').style.display='inline-block';
-            db.collection(mode).onSnapshot(snapshot => {
-                cachedData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderSidebar();
-                if(selectedId) selectItem(selectedId);
-            });
-        }
-
-        function toggleSidebar() { 
-            document.getElementById('sidebar').classList.toggle('open'); 
-            document.getElementById('backdrop').classList.toggle('open'); 
-        }
-
-        function toggleTheme() {
-            const current = document.documentElement.getAttribute('data-theme');
-            const next = current === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-        }
-
-        mainScroll.onscroll = () => {
-            if (mainScroll.scrollTop > 100) document.getElementById('mainHeader').classList.add('scrolled');
-            else document.getElementById('mainHeader').classList.remove('scrolled');
-            const footer = document.getElementById('footerNav');
-            if (mainScroll.scrollTop + mainScroll.clientHeight >= mainScroll.scrollHeight - 50) footer.classList.add('visible');
-            else footer.classList.remove('visible');
+        // --- DATA STRUCTURE (Parsed from your request) ---
+        const checklistData = {
+            "Neurology": {
+                "Stroke": [
+                    "Definition & Classification", "Risk Factors", "Causes of Embolization", 
+                    "Clinical Presentations (TACS/PACS)", "Blood Supply of Brain", 
+                    "Brainstem/Cerebellar Syndromes", "Speech Problems (Aphasia)", 
+                    "Complications of Stroke", "Investigations (CT/MRI)", 
+                    "Thrombolytic Therapy", "BP Management & Prevention", 
+                    "Young Stroke Causes", "Thrombectomy"
+                ],
+                "Seizures & Epilepsy": [
+                    "Definitions & Classification", "Focal vs Generalised", 
+                    "Investigations (EEG)", "Antiepileptic Drugs", "Seizure vs Syncope"
+                ],
+                "Parkinson's Disease": [
+                    "Cardinal Features", "Diagnosis & Investigations", 
+                    "Management Outline", "Drugs & DBS", "Parkinson Plus Syndromes"
+                ],
+                "Myasthenia Gravis": [
+                    "Aetiology & Pathology", "Clinical Features", 
+                    "Investigations (Tensilon/Antibodies)", "Management (Crisis/Drugs)"
+                ],
+                "Guillain-Barré Syndrome": [
+                    "Clinical Presentation", "Pathology (AIDP/AMAN)", 
+                    "Investigations (LP/NCS)", "Management (IVIG/Plasma)"
+                ],
+                "CNS Infections": [
+                    "Viral Meningitis", "Bacterial Meningitis", 
+                    "Lumbar Puncture (Indications/Technique)", "Antimicrobials"
+                ],
+                "Multiple Sclerosis": ["Clinical Presentation", "MRI Findings", "Management"],
+                "Degenerative Conditions": ["ALS", "Alzheimers & Dementias"]
+            },
+            "Endocrinology": {
+                "Diabetes Mellitus": [
+                    "Diagnosis (Criteria)", "Type 1 vs Type 2", "Acute Complications (DKA/HHS)", 
+                    "Chronic Complications", "Management (Oral/Insulin)", "Obesity & BMI"
+                ],
+                "Pituitary Disorders": [
+                    "Acromegaly", "Cushing's Syndrome", "Prolactinoma", "Hypopituitarism"
+                ],
+                "Adrenal Disorders": [
+                    "Primary Aldosteronism", "Pheochromocytoma", "Hypoadrenalism (Addison's)"
+                ],
+                "Thyroid Disorders": [
+                    "Hyperthyroidism (Graves)", "Hypothyroidism (Hashimotos)", 
+                    "Thyroid Storm", "Thyroid Nodules & Malignancy"
+                ]
+            },
+            "Haematology": {
+                "Red Blood Cell": [
+                    "Thalassaemia", "Aplastic Anaemia"
+                ],
+                "Coagulation": [
+                    "Haemophilia", "DIC", "Thrombotic Thrombocytopenic Purpura (TTP)"
+                ],
+                "Malignancies": [
+                    "Acute Leukaemias", "APML", "Lymphomas (Hodgkins/Non-Hodgkins)", 
+                    "Multiple Myeloma", "Myeloproliferative Neoplasms (CML/ET)"
+                ]
+            },
+            "Rheumatology": {
+                "General": ["Approach to Arthritis", "Septic Arthritis"],
+                "Joint Disorders": [
+                    "Rheumatoid Arthritis", "Osteoarthritis", 
+                    "Gout & Pseudogout", "Spondyloarthropathies (Ankylosing/Psoriatic)"
+                ],
+                "Connective Tissue": [
+                    "SLE (Lupus)", "Antiphospholipid Syndrome", "Systemic Sclerosis"
+                ]
+            }
         };
 
-        function renderSidebar(filter = '') {
-            const area = document.getElementById('listArea'); area.innerHTML = '';
-            const categories = [...new Set(cachedData.map(d => d.category))].sort();
-            categories.forEach(cat => {
-                const items = cachedData.filter(d => d.category === cat && d.name.toLowerCase().includes(filter.toLowerCase()));
-                if (items.length > 0) {
-                    const h = document.createElement('div'); h.className = 'category-header'; h.innerText = cat || "General"; area.appendChild(h);
-                    items.forEach(item => {
-                        const b = document.createElement('button'); b.className = 'case-btn'; b.innerText = item.name;
-                        if(selectedId === item.id) b.classList.add('active');
-                        b.onclick = () => selectItem(item.id, b); area.appendChild(b);
+        let currentNoteId = null;
+        let saveTimeout = null;
+
+        // --- INIT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            renderChecklist();
+            setupScrollHeader();
+        });
+
+        // --- RENDER SIDEBAR ---
+        function renderChecklist() {
+            const container = document.getElementById('checklistContainer');
+            container.innerHTML = '';
+
+            let totalItems = 0;
+
+            for (const [category, topics] of Object.entries(checklistData)) {
+                // Category Header (e.g., NEUROLOGY)
+                const catHeader = document.createElement('div');
+                catHeader.className = 'tree-category';
+                catHeader.innerText = category;
+                container.appendChild(catHeader);
+
+                for (const [topic, subtopics] of Object.entries(topics)) {
+                    // Topic Folder (e.g., Stroke)
+                    const topicDiv = document.createElement('div');
+                    topicDiv.className = 'tree-item collapsed';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'tree-header';
+                    header.innerText = topic;
+                    header.onclick = () => topicDiv.classList.toggle('collapsed');
+                    
+                    const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'tree-children';
+
+                    subtopics.forEach(sub => {
+                        totalItems++;
+                        const id = sanitizeId(`${category}_${topic}_${sub}`);
+                        const leaf = document.createElement('div');
+                        leaf.className = 'tree-leaf';
+                        leaf.dataset.id = id;
+                        leaf.innerHTML = `<span class="status-dot" id="dot-${id}"></span>${sub}`;
+                        leaf.onclick = (e) => {
+                            e.stopPropagation();
+                            loadNote(category, topic, sub, id, leaf);
+                        };
+                        childrenDiv.appendChild(leaf);
+                        
+                        // Check status asynchronously
+                        checkStatus(id);
                     });
+
+                    topicDiv.appendChild(header);
+                    topicDiv.appendChild(childrenDiv);
+                    container.appendChild(topicDiv);
                 }
-            });
-        }
-
-        function selectItem(id, btn) {
-            selectedId = id;
-            document.querySelectorAll('.case-btn').forEach(b => b.classList.remove('active'));
-            if(btn) btn.classList.add('active');
-            const item = cachedData.find(d => d.id === id);
-            if(!item) return;
-            document.getElementById('welcomeState').style.display = 'none';
-            document.getElementById('detailsContainer').style.display = 'block';
-            document.getElementById('contentName').innerText = item.name;
-            document.getElementById('categoryTag').innerText = item.category;
-            document.getElementById('headerCaseTitle').innerText = item.name;
-            document.getElementById('headerCaseCat').innerText = item.category;
-            document.getElementById('itemAdminControls').style.display = isAdmin ? 'flex' : 'none';
-            const tabs = document.getElementById('tabsContainer'), card = document.getElementById('contentCard');
-            tabs.innerHTML = ''; card.innerHTML = '';
-            const ignored = ['id', 'category', 'name'];
-            Object.keys(item).filter(k => !ignored.includes(k)).sort().forEach((key, idx) => {
-                const t = document.createElement('button'); t.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
-                t.innerText = key.replace(/_/g, ' ').toUpperCase();
-                t.onclick = () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); t.classList.add('active');
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    document.getElementById(`content-${key}`).classList.add('active');
-                    mainScroll.scrollTo({top: 0, behavior: 'smooth'});
-                };
-                tabs.appendChild(t);
-                const d = document.createElement('div'); d.id = `content-${key}`; d.className = `tab-content ${idx === 0 ? 'active' : ''}`; d.innerHTML = item[key]; card.appendChild(d);
-            });
-            renderFooterNav(id);
-        }
-
-        function renderFooterNav(id) {
-            const idx = cachedData.findIndex(d => d.id === id);
-            const prev = cachedData[idx - 1], next = cachedData[idx + 1];
-            const nav = document.getElementById('footerNav');
-            nav.innerHTML = '';
-            if(prev) {
-                const b = document.createElement('button'); b.className = 'nav-btn';
-                b.innerHTML = `← <div><div class="nav-label">Back</div>${prev.name}</div>`;
-                b.onclick = () => selectItem(prev.id); nav.appendChild(b);
-            } else { nav.appendChild(document.createElement('div')); }
-            if(next) {
-                const b = document.createElement('button'); b.className = 'nav-btn nav-btn-next';
-                b.innerHTML = `<div><div class="nav-label">Next</div>${next.name}</div> →`;
-                b.onclick = () => selectItem(next.id); nav.appendChild(b);
             }
         }
 
-        // --- ADMIN FUNCTIONS ---
-        function adminLogin() {
-            if(prompt("Passcode:") === "admin123") {
-                isAdmin = true;
-                document.getElementById('adminPanel').style.display='flex';
-                document.getElementById('fabAdd').style.display='flex';
-                document.getElementById('adminBtn').innerText = "Admin: ON";
-                if(selectedId) selectItem(selectedId);
+        function sanitizeId(str) {
+            return str.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+        }
+
+        // --- NOTE LOGIC ---
+        async function loadNote(category, topic, sub, id, el) {
+            // UI Updates
+            document.querySelectorAll('.tree-leaf').forEach(x => x.classList.remove('active'));
+            if(el) el.classList.add('active');
+            
+            // Mobile handling
+            if(window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('backdrop').classList.remove('open');
             }
-        }
 
-        function openManualAdd() {
-            document.getElementById('editItemId').value = "";
-            document.getElementById('editName').value = "";
-            document.getElementById('editCategory').value = "";
-            document.getElementById('dynamicTabFields').innerHTML = "";
-            document.getElementById('editorModalTitle').innerText = "Create New Topic";
-            addNewTabField();
-            document.getElementById('editorModal').classList.add('active');
-        }
+            // Switch Views
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('editorContainer').style.display = 'flex';
+            document.getElementById('toolbar').classList.add('visible');
 
-        function editCurrentItem() {
-            const item = cachedData.find(d => d.id === selectedId);
-            document.getElementById('editItemId').value = item.id;
-            document.getElementById('editName').value = item.name;
-            document.getElementById('editCategory').value = item.category;
-            const container = document.getElementById('dynamicTabFields');
-            container.innerHTML = "";
-            const ignored = ['id', 'category', 'name'];
-            Object.keys(item).filter(k => !ignored.includes(k)).forEach(key => {
-                addNewTabField(key.replace(/_/g, ' '), item[key]);
-            });
-            document.getElementById('editorModal').classList.add('active');
-        }
+            // Setup Header
+            document.getElementById('breadcrumbs').innerText = `${category} / ${topic}`;
+            document.getElementById('noteTitleDisplay').value = sub;
+            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
 
-        function addNewTabField(label = "", content = "") {
-            const div = document.createElement('div');
-            div.className = "form-group tab-field-row";
-            div.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center;"><label class="form-label">Tab Title</label><button onclick="this.parentElement.parentElement.remove()" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:0.7rem">Remove</button></div>
-                <input type="text" class="form-input tab-label" value="${label}">
-                <textarea class="form-textarea tab-content-val">${content.replace(/<br>/g, '\n')}</textarea>
-            `;
-            document.getElementById('dynamicTabFields').appendChild(div);
-        }
+            currentNoteId = id;
 
-        async function saveManualEdit() {
-            const id = document.getElementById('editItemId').value;
-            const data = { name: document.getElementById('editName').value, category: document.getElementById('editCategory').value };
-            document.querySelectorAll('.tab-field-row').forEach(row => {
-                const label = row.querySelector('.tab-label').value.replace(/\s+/g, '_');
-                const val = row.querySelector('.tab-content-val').value.replace(/\n/g, '<br>');
-                if(label) data[label] = val;
-            });
-            if(id) await db.collection(currentMode).doc(id).update(data);
-            else await db.collection(currentMode).add(data);
-            closeEditor();
-        }
-
-        async function deleteCurrentItem() {
-            if(confirm("Delete permanently?")) {
-                await db.collection(currentMode).doc(selectedId).delete();
-                selectedId = null; goHome();
-            }
-        }
-
-        async function processImport() {
-            const text = document.getElementById('importText').value;
+            // Fetch Data
             try {
-                const getVal = (regex) => { const match = text.match(regex); return match ? match[1] : null; };
-                const title = getVal(/Title:\s*["“]([^"”]+)["”]/i);
-                const cat = getVal(/Category:\s*["“]([^"”]+)["”]/i) || "General";
-                const type = getVal(/Type:\s*["“]([^"”]+)["”]/i) || "diseases";
-                const data = { name: title, category: cat };
-                const tabRegex = /Tab\d+:\s*["“]([^"”]+)["”]:\s*["“]([^"”]+)["”]/g;
-                let match;
-                while ((match = tabRegex.exec(text)) !== null) { data[match[1].replace(/\s+/g, '_')] = match[2].replace(/\\n/g, '<br>'); }
-                await db.collection(type).add(data); alert("Upload Successful!"); closeModal();
-            } catch (e) { alert("Format Error."); }
+                const doc = await db.collection('notes').doc(id).get();
+                if (doc.exists) {
+                    document.getElementById('editor').innerHTML = doc.data().content;
+                    markAsDone(id, true);
+                } else {
+                    document.getElementById('editor').innerHTML = ''; // New note
+                }
+            } catch (e) {
+                console.error("Error loading", e);
+                document.getElementById('editor').innerText = "Error loading note.";
+            }
         }
 
-        function openImport() { document.getElementById('importModal').classList.add('active'); }
-        function closeModal() { document.getElementById('importModal').classList.remove('active'); }
-        function closeEditor() { document.getElementById('editorModal').classList.remove('active'); }
-        document.getElementById('searchInput').oninput = (e) => renderSidebar(e.target.value);
+        // --- AUTOSAVE LOGIC ---
+        const editor = document.getElementById('editor');
+        
+        editor.addEventListener('input', () => {
+            clearTimeout(saveTimeout);
+            document.getElementById('saveIndicator').style.opacity = '0';
+            saveTimeout = setTimeout(saveNote, 1000);
+        });
+
+        async function saveNote() {
+            if (!currentNoteId) return;
+            const content = document.getElementById('editor').innerHTML;
+            
+            // Don't save empty junk
+            if(content.trim() === "" || content === "<br>") return;
+
+            try {
+                await db.collection('notes').doc(currentNoteId).set({
+                    content: content,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+                
+                showSaved();
+                markAsDone(currentNoteId, true);
+            } catch (e) {
+                console.error("Save failed", e);
+            }
+        }
+
+        function showSaved() {
+            const ind = document.getElementById('saveIndicator');
+            ind.style.opacity = '1';
+            setTimeout(() => ind.style.opacity = '0', 2000);
+        }
+
+        // --- CHECKLIST STATUS ---
+        function markAsDone(id, isDone) {
+            const dot = document.getElementById(`dot-${id}`);
+            if(dot && isDone) dot.classList.add('done');
+            updateProgress();
+        }
+
+        async function checkStatus(id) {
+            // Optimization: In a real app, fetch all metadata in one go. 
+            // Here we do lazy checking for simplicity.
+            const doc = await db.collection('notes').doc(id).get();
+            if(doc.exists && doc.data().content && doc.data().content.length > 10) {
+                markAsDone(id, true);
+            }
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('.status-dot').length;
+            const done = document.querySelectorAll('.status-dot.done').length;
+            const pct = (done / total) * 100;
+            document.getElementById('overallProgress').style.width = `${pct}%`;
+        }
+
+        // --- FORMATTING TOOLS ---
+        function formatDoc(cmd) {
+            if(cmd === 'h2') {
+                document.execCommand('formatBlock', false, '<h2>');
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+            editor.focus();
+        }
+
+        // --- UI UTILS ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('backdrop').classList.toggle('open');
+        }
+
+        function setupScrollHeader() {
+            const scrollArea = document.getElementById('scrollArea');
+            const header = document.getElementById('mainHeader');
+            scrollArea.addEventListener('scroll', () => {
+                if(scrollArea.scrollTop > 20) header.classList.add('scrolled');
+                else header.classList.remove('scrolled');
+            });
+        }
+
     </script>
 </body>
 </html>
