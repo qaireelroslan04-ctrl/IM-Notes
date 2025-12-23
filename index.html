@@ -44,6 +44,14 @@
         .header-top { display: flex; justify-content: space-between; align-items: center; }
         .app-logo { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; color: var(--text-main); }
         
+        /* Edit Toggle */
+        .edit-toggle { 
+            font-size: 0.75rem; cursor: pointer; color: var(--text-muted); 
+            padding: 4px 8px; border: 1px solid #333; border-radius: 4px; 
+            font-weight: 600; text-transform: uppercase;
+        }
+        .edit-toggle.active { background: #ef4444; color: white; border-color: #ef4444; }
+
         /* Search Bar */
         #sidebar-search {
             width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #333;
@@ -108,6 +116,7 @@
         /* Editor Content */
         .editor-content { min-height: 60vh; font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; white-space: pre-wrap; border: none; }
         .editor-content:empty:before { content: 'Start typing notes...'; color: #444; }
+        .editor-content[contenteditable="false"] { color: #888; cursor: default; }
         .editor-content img { max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
         .editor-content iframe { width: 100%; aspect-ratio: 16/9; border-radius: 8px; margin: 10px 0; border: none; }
         .editor-content blockquote { border-left: 3px solid var(--accent-color); padding-left: 1rem; color: #999; margin: 1em 0; background: #181818; padding: 0.5rem; border-radius: 0 4px 4px 0; }
@@ -159,8 +168,8 @@
     <aside id="sidebar">
         <div class="sidebar-header">
             <div class="header-top">
-                <div class="app-logo">IM Curriculum V3</div>
-                <div style="font-size:0.7rem; color:#666;">AUTO-SAVE ON</div>
+                <div class="app-logo">IM Curriculum</div>
+                <div id="editToggle" class="edit-toggle" onclick="toggleEditMode()">EDIT ON</div>
             </div>
             <input type="text" id="sidebar-search" placeholder="Search topics (e.g. Asthma)...">
             <div id="search-results"></div>
@@ -223,20 +232,26 @@
         const db = firebase.firestore();
 
         let currentNoteId = null;
+        let isEditMode = true;
 
-        // --- 2. NEW GRANULAR DATA (From PDF) ---
+        // --- 2. DEEP DATA STRUCTURE ---
+        // Refactored to allow unlimited Subgroups and separate Topics (Leafs)
         const medicalData = {
             "1. Cardiovascular": {
                 "History & Exam": {
-                    "History Taking": { id: "cv-hx", content: "<b>History:</b> Chest pain, SOB, Orthopnoea, PND, Syncope.<br><b>Risks:</b> IVDU, Rheumatic fever." },
-                    "Physical Exam": { id: "cv-pe", content: "<b>Hands:</b> Clubbing, Cyanosis, IE stigmata.<br><b>Precordium:</b> Apex beat, Thrills, Murmurs." }
+                    "History": { id: "cv-hx", content: "<b>History:</b> Chest pain, SOB, Orthopnoea, PND, Syncope.<br><b>Risks:</b> IVDU, Rheumatic fever." },
+                    "Physical": { id: "cv-pe", content: "<b>Hands:</b> Clubbing, Cyanosis, IE stigmata.<br><b>Precordium:</b> Apex beat, Thrills, Murmurs." }
                 },
                 "Diseases": {
-                    "Hypertension": { id: "htn", content: "Definitions, Target organ damage, Secondary HTN causes, Drugs." },
-                    "Ischaemic Heart Disease": { id: "ihd", content: "ACS presentations, Stress test, Angio, Management." },
-                    "Heart Failure": { id: "hf", content: "Acute vs Chronic, HfpEF, Drug treatment (BB, ACEi, MRA)." },
-                    "Rheumatic Heart Disease": { id: "rhd", content: "Aetiology, Valve lesions, Prevention." },
-                    "Infective Endocarditis": { id: "ie", content: "Dukes criteria, Pathogens, Management." }
+                    "Hypertension": {
+                        "Basics": { id: "htn-base", content: "Definitions, Target organ damage." },
+                        "Management": { id: "htn-mx", content: "Antihypertensive drugs, Stepped care." }
+                    },
+                    "Ischaemic Heart Disease": {
+                        "Diagnosis": { id: "ihd-dx", content: "ACS presentations, Stress test, Angio." },
+                        "Management": { id: "ihd-mx", content: "ACS Algorithm, Secondary prevention." }
+                    },
+                    "Heart Failure": { id: "hf", content: "Acute vs Chronic, HfpEF, Drug treatment (BB, ACEi, MRA)." }
                 },
                 "Emergencies": {
                     "Cardiac Tamponade": { id: "tamponade", content: "Beck's triad, Management." },
@@ -245,20 +260,23 @@
             },
             "2. Respiratory": {
                 "Airway": {
-                    "Asthma": { id: "asthma", content: "Diagnosis, Severity, Acute exacerbation, MDI techniques." },
+                    "Asthma": {
+                        "Diagnosis": { id: "asthma-dx", content: "Spirometry, Reversibility." },
+                        "Acute": { id: "asthma-acute", content: "Severe vs Life Threatening signs. SABA, Steroids." },
+                        "Chronic": { id: "asthma-chron", content: "Step-up therapy." }
+                    },
                     "COPD": { id: "copd", content: "Diagnosis, Smoking Hx, CXR, Acute/Chronic management." }
                 },
                 "Infections": {
                     "Pneumonia": { id: "pneu", content: "CURB-65, Types, Complications." },
-                    "TB": { id: "tb", content: "Screening, DOTS, Drug side effects." },
-                    "Bronchiectasis": { id: "bronch", content: "Diagnosis, Physio, Antibiotics." }
+                    "Tuberculosis (TB)": {
+                        "Screening": { id: "tb-screen", content: "Mantoux, IGRA, CXR." },
+                        "Treatment": { id: "tb-rx", content: "DOTS regimen. Isoniazid, Rifampicin side effects." }
+                    }
                 },
                 "Pleural": {
                     "Pleural Effusion": { id: "pleural", content: "Lights criteria, Tap, Causes." },
                     "Pneumothorax": { id: "pneumo", content: "Types, Chest tube management." }
-                },
-                "Procedures": {
-                    "ABG": { id: "abg", content: "Acidosis vs Alkalosis, Respiratory Failure types." }
                 }
             },
             "3. Renal": {
@@ -269,10 +287,6 @@
                 "Glomerular": {
                     "Nephrotic Syndrome": { id: "nephrotic", content: "Proteinuria, Edema, Causes (Minimal change, Membranous)." },
                     "Nephritic Syndrome": { id: "nephritic", content: "Hematuria, HTN, Post-infectious GN, IgA." }
-                },
-                "Others": {
-                    "UTI": { id: "uti", content: "Pyelonephritis, Cystitis, Management." },
-                    "Fluids & Lytes": { id: "lytes", content: "Hyponatremia, Hyperkalemia management." }
                 }
             },
             "4. Infectious Disease": {
@@ -282,8 +296,7 @@
                 },
                 "Tropical": {
                     "Dengue": { id: "dengue", content: "Phases (Febrile, Critical, Recovery), Warning signs, Fluids." },
-                    "Malaria": { id: "malaria", content: "Species, Severe malaria signs, Treatment." },
-                    "Leptospirosis": { id: "lepto", content: "Risk factors, Weil's disease." }
+                    "Malaria": { id: "malaria", content: "Species, Severe malaria signs, Treatment." }
                 },
                 "Viral": {
                     "HIV": { id: "hiv", content: "Stages, Opportunistic infections, CD4 count." }
@@ -292,12 +305,10 @@
             "5. GIT & Liver": {
                 "Hepatology": {
                     "Cirrhosis": { id: "cirr", content: "Stigmata, Child-Pugh, Causes." },
-                    "Portal HTN": { id: "phtn", content: "Varices, Ascites (SAAG), Encephalopathy." },
-                    "Viral Hepatitis": { id: "hep-viral", content: "Hep A, B, C markers and serology." }
+                    "Portal HTN": { id: "phtn", content: "Varices, Ascites (SAAG), Encephalopathy." }
                 },
                 "GI Tract": {
-                    "IBD": { id: "ibd", content: "Crohns vs UC." },
-                    "Diarrhea": { id: "diarrhea", content: "Acute vs Chronic approach." }
+                    "IBD": { id: "ibd", content: "Crohns vs UC." }
                 }
             },
             "6. Neurology": {
@@ -308,44 +319,12 @@
                 "Movement": {
                     "Parkinsons": { id: "pd", content: "TRAP features, Drugs (L-Dopa)." },
                     "Epilepsy": { id: "epilepsy", content: "Classification, Status Epilepticus." }
-                },
-                "Nerves": {
-                    "GBS": { id: "gbs", content: "Ascending paralysis, Reflexes, IVIG." },
-                    "Myasthenia": { id: "mg", content: "Fatigability, Tensilon test." }
                 }
             },
             "7. Endocrinology": {
                 "Diabetes": {
                     "Management": { id: "dm-mx", content: "Targets, OHAs, Insulin types." },
                     "Complications": { id: "dm-comp", content: "DKA/HHS, Micro/Macrovascular." }
-                },
-                "Thyroid": {
-                    "Hyper": { id: "hyper-t", content: "Graves, Storm, Carbimazole." },
-                    "Hypo": { id: "hypo-t", content: "Hashimotos, Levothyroxine." }
-                },
-                "Adrenal/Pituitary": {
-                    "Cushings": { id: "cush", content: "Screening, Dexamethasone suppression." },
-                    "Acromegaly": { id: "acro", content: "IGF-1, OGTT." }
-                }
-            },
-            "8. Haematology": {
-                "Anemia": {
-                    "Thalassaemia": { id: "thal", content: "Electrophoresis, Iron overload." },
-                    "Aplastic": { id: "aa", content: "Pancytopenia causes." }
-                },
-                "Clotting": {
-                    "Haemophilia": { id: "hemo", content: "Factor VIII/IX, APTT." },
-                    "DIC/TTP": { id: "dic-ttp", content: "Emergency management, differentiating features." }
-                }
-            },
-            "9. Rheumatology": {
-                "Joints": {
-                    "RA": { id: "ra", content: "Symmetrical, RF/CCP, DMARDs." },
-                    "OA": { id: "oa", content: "Mechanical, X-ray findings." },
-                    "Gout": { id: "gout", content: "Crystals, Acute vs Chronic tx." }
-                },
-                "Systemic": {
-                    "SLE": { id: "sle", content: "ANA, dsDNA, Malar rash, Nephritis." }
                 }
             }
         };
@@ -356,7 +335,7 @@
             
             const editor = document.getElementById('editor');
             
-            // Toolbar State Logic (Fix 1.7)
+            // Toolbar State Logic (Fix 1.7) - Runs on keyup/click to update purple buttons
             editor.addEventListener('mouseup', updateToolbarState);
             editor.addEventListener('keyup', updateToolbarState);
             
@@ -380,7 +359,7 @@
                 window.visualViewport.addEventListener('resize', () => {
                     const toolbar = document.getElementById('toolbar');
                     if (window.visualViewport.height < window.innerHeight) {
-                        // Keyboard likely open
+                        // Keyboard likely open, float above it
                         toolbar.style.bottom = `${window.innerHeight - window.visualViewport.height + 10}px`;
                     } else {
                         toolbar.style.bottom = '20px';
@@ -389,11 +368,12 @@
             }
         });
 
-        // --- 4. RECURSIVE RENDERER ---
-        function renderSidebar(data, container, depth = 0) {
+        // --- 4. RECURSIVE RENDERER (Fix 2.1) ---
+        function renderSidebar(data, container, depth = 0, path = []) {
             for (const key in data) {
                 const item = data[key];
                 const isTopic = item.hasOwnProperty('id') && item.hasOwnProperty('content');
+                const currentPath = [...path, key];
 
                 if (isTopic) {
                     // Leaf Node (Topic)
@@ -402,10 +382,10 @@
                     el.dataset.id = item.id;
                     el.style.paddingLeft = `${20 + (depth * 10)}px`;
                     el.textContent = key;
-                    el.onclick = () => loadNote(item.id, item.content, key);
+                    el.onclick = () => loadNote(item.id, item.content, key, currentPath);
                     container.appendChild(el);
                 } else {
-                    // Folder Node
+                    // Folder Node (Sub-subgroups)
                     const folderDiv = document.createElement('div');
                     
                     const header = document.createElement('div');
@@ -426,13 +406,13 @@
                     container.appendChild(folderDiv);
                     
                     // Recurse
-                    renderSidebar(item, subList, depth + 1);
+                    renderSidebar(item, subList, depth + 1, currentPath);
                 }
             }
         }
 
         // --- 5. NOTE LOGIC ---
-        async function loadNote(id, defaultContent, title) {
+        async function loadNote(id, defaultContent, title, pathArray) {
             currentNoteId = id;
             
             // UI Updates
@@ -445,9 +425,10 @@
                 closeSidebar();
             }
 
-            document.getElementById('breadcrumbs').innerText = "Current Topic";
+            // Breadcrumbs
+            document.getElementById('breadcrumbs').innerText = pathArray.join(" > ");
             document.getElementById('noteTitle').value = title;
-            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading from cloud...</span>';
+            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
 
             // Firebase Fetch
             try {
@@ -471,16 +452,14 @@
                 content: content,
                 lastUpdated: new Date()
             }, { merge: true });
-            
-            const status = document.querySelector('.header-top div:last-child');
-            status.style.color = '#7f6df2';
-            status.innerText = 'SAVED';
-            setTimeout(() => { status.style.color = '#666'; status.innerText = 'AUTO-SAVE ON'; }, 2000);
         }
 
         // --- 6. TOOLBAR FUNCTIONS ---
         function handleToolbarClick(e) {
-            const btn = e.currentTarget; // use currentTarget to get button, not icon
+            // Fix 1.3: Prevent scrolling triggers
+            if(e.type === 'click' && e.detail === 0) return; // Ignore synth events if needed
+
+            const btn = e.currentTarget; 
             const cmd = btn.dataset.cmd;
             const val = btn.dataset.val || null;
             const id = btn.id;
@@ -494,7 +473,7 @@
             updateToolbarState();
         }
 
-        // Update visual state of buttons (Purple if active)
+        // Fix 1.7: Visual Feedback
         function updateToolbarState() {
             document.querySelectorAll('[data-cmd]').forEach(btn => {
                 const cmd = btn.dataset.cmd;
@@ -506,16 +485,18 @@
         }
 
         function addLink() {
+            // Fix 1.6: Link Logic
             const url = prompt("Enter Link URL:");
-            // Fix 1.6: Ensure URL is valid for execCommand
-            if (url) document.execCommand('createLink', false, url);
+            if (url) {
+                document.execCommand('createLink', false, url);
+            }
         }
 
         function addImage() {
             const url = prompt("Enter Image URL:");
             if (url) {
                 // Fix 1.5: Error handling
-                const html = `<img src="${url}" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<span style=\\'color:red\\'>[Broken Image]</span>')" />`;
+                const html = `<img src="${url}" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '<span style=\\'color:#ef4444\\'>[Image Failed]</span>')" />`;
                 document.execCommand('insertHTML', false, html);
             }
         }
@@ -535,7 +516,7 @@
             }
         }
 
-        // --- 7. SEARCH FUNCTION ---
+        // --- 7. SEARCH FUNCTION (New) ---
         function handleSearch(e) {
             const query = e.target.value.toLowerCase();
             const resultsBox = document.getElementById('search-results');
@@ -548,14 +529,14 @@
 
             const results = [];
             
-            // Recursive Search
+            // Recursive Search scans Structure AND Content
             function searchRecursive(data, path) {
                 for(const key in data) {
                     const item = data[key];
                     if(item.id && item.content) {
-                        // Check title match
-                        if(key.toLowerCase().includes(query)) {
-                            results.push({ title: key, path: path.join(' > '), id: item.id, content: item.content });
+                        // Check title match OR content match
+                        if(key.toLowerCase().includes(query) || item.content.toLowerCase().includes(query)) {
+                            results.push({ title: key, path: path.join(' > '), id: item.id, content: item.content, fullPath: [...path, key] });
                         }
                     } else {
                         searchRecursive(item, [...path, key]);
@@ -572,7 +553,7 @@
                     div.className = 'search-result-item';
                     div.innerHTML = `<div class="search-path">${res.path}</div><div>${res.title}</div>`;
                     div.onclick = () => {
-                        loadNote(res.id, res.content, res.title);
+                        loadNote(res.id, res.content, res.title, res.fullPath);
                         resultsBox.style.display = 'none';
                         document.getElementById('sidebar-search').value = '';
                     };
@@ -585,13 +566,32 @@
         }
 
         // --- 8. UI HELPERS ---
+        function toggleEditMode() {
+            // Fix 3: Logic to enable/disable editing
+            isEditMode = !isEditMode;
+            const editor = document.getElementById('editor');
+            const btn = document.getElementById('editToggle');
+            const toolbar = document.getElementById('toolbar');
+
+            editor.contentEditable = isEditMode;
+            btn.innerText = isEditMode ? 'EDIT ON' : 'EDIT OFF';
+            
+            if(isEditMode) {
+                btn.classList.add('active');
+                toolbar.classList.remove('hidden');
+            } else {
+                btn.classList.remove('active');
+                toolbar.classList.add('hidden');
+            }
+        }
+
         function openSidebar() {
             const sidebar = document.getElementById('sidebar');
             const toolbar = document.getElementById('toolbar');
             sidebar.classList.add('open');
             document.getElementById('backdrop').classList.add('open');
-            // Fix 1.2: Hide toolbar when sidebar open on mobile
-            if(window.innerWidth <= 900) toolbar.classList.add('hidden');
+            // Fix 1.2: Hide toolbar when sidebar open
+            toolbar.classList.add('hidden');
         }
         
         function closeSidebar() {
@@ -599,7 +599,7 @@
             const toolbar = document.getElementById('toolbar');
             sidebar.classList.remove('open');
             document.getElementById('backdrop').classList.remove('open');
-            toolbar.classList.remove('hidden');
+            if(isEditMode) toolbar.classList.remove('hidden');
         }
 
     </script>
