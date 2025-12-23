@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content">
-    <title>IM Curriculum Tracker V5</title>
+    <title>IM Curriculum V6</title>
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -13,15 +13,13 @@
         :root {
             --bg-body: #09090b; --bg-sidebar: #101012; 
             --text-main: #e4e4e7; --text-muted: #a1a1aa; 
-            --accent-color: #8b5cf6; --accent-hover: #7c3aed;
+            --accent-color: #8b5cf6; 
             --danger: #ef4444; --success: #22c55e;
             --border-color: #27272a; 
             --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --header-height: 60px;
+            --header-height: 50px;
         }
 
-        /* --- 2. RESET & BASE --- */
         * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
         
         body {
@@ -29,7 +27,7 @@
             height: 100vh; display: flex; overflow: hidden; font-size: 14px;
         }
 
-        /* --- 3. SIDEBAR (Modernized) --- */
+        /* --- 2. SIDEBAR --- */
         aside {
             width: 320px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
             display: flex; flex-direction: column; z-index: 100; flex-shrink: 0;
@@ -37,140 +35,121 @@
         }
 
         .sidebar-header { 
-            padding: 16px; border-bottom: 1px solid var(--border-color); 
-            display: flex; flex-direction: column; gap: 12px; background: var(--bg-sidebar);
+            padding: 12px; border-bottom: 1px solid var(--border-color); 
+            display: flex; flex-direction: column; gap: 10px; background: var(--bg-sidebar);
         }
 
-        .header-controls { display: flex; justify-content: space-between; align-items: center; }
-        .app-logo { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; color: #fff; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; }
+        .app-logo { font-weight: 800; font-size: 1rem; color: #fff; }
 
-        .btn-group { display: flex; gap: 8px; }
+        /* Small Buttons */
         .btn-xs {
             font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; border: 1px solid #333;
             background: transparent; color: var(--text-muted); cursor: pointer; font-weight: 600;
-            transition: all 0.2s; text-transform: uppercase;
+            text-transform: uppercase; transition: all 0.2s;
         }
         .btn-xs:hover { border-color: #555; color: #fff; }
         .btn-xs.active { background: var(--accent-color); border-color: var(--accent-color); color: white; }
-        .btn-xs.danger.active { background: var(--danger); border-color: var(--danger); }
-
+        
         /* Search */
-        .search-wrapper { position: relative; }
         #sidebar-search {
-            width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid #333;
+            width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid #333;
             background: #18181b; color: white; font-size: 0.85rem;
         }
-        #sidebar-search:focus { border-color: var(--accent-color); }
         
         #search-results {
-            position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
-            max-height: 300px; overflow-y: auto; background: #18181b; 
-            border: 1px solid #333; border-radius: 0 0 6px 6px; display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            max-height: 200px; overflow-y: auto; background: #18181b; 
+            border: 1px solid #333; display: none; margin-top: 5px; border-radius: 4px;
         }
-        .search-item { 
-            padding: 8px 12px; border-bottom: 1px solid #222; cursor: pointer; 
-            display: flex; flex-direction: column; gap: 2px;
-        }
+        .search-item { padding: 6px 10px; border-bottom: 1px solid #222; cursor: pointer; }
         .search-item:hover { background: #27272a; }
         .search-path { font-size: 0.7rem; color: var(--text-muted); }
-        .search-title { font-weight: 600; font-size: 0.85rem; color: #fff; }
 
-        /* Tree Container */
         .tree-scroll { flex: 1; overflow-y: auto; padding: 10px 0 40px 0; }
         
-        /* Tree Node Styles */
+        /* Tree Nodes */
         .tree-node { position: relative; }
         .tree-content {
-            display: flex; align-items: center; padding: 6px 12px; cursor: pointer;
-            color: var(--text-muted); border-left: 2px solid transparent; gap: 8px;
-            transition: background 0.1s;
+            display: flex; align-items: center; padding: 4px 12px; cursor: pointer;
+            color: var(--text-muted); border-left: 2px solid transparent; gap: 6px;
         }
         .tree-content:hover { background: #18181b; color: #fff; }
         .tree-content.active { 
-            background: rgba(139, 92, 246, 0.15); color: #fff; 
+            background: rgba(139, 92, 246, 0.1); color: #fff; 
             border-left-color: var(--accent-color); 
         }
 
-        .tree-icon { width: 14px; text-align: center; font-size: 0.8rem; display: inline-block; }
-        .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .tree-toggle { 
-            width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; 
-            transition: transform 0.2s; font-size: 0.7rem; color: #666;
-        }
+        .tree-toggle { width: 14px; text-align: center; font-size: 0.7rem; color: #555; transition: 0.2s; }
         .tree-toggle.rotated { transform: rotate(90deg); color: #fff; }
-
-        /* Nested Children */
-        .tree-children { 
-            display: none; margin-left: 19px; border-left: 1px solid #333; 
-        }
+        .tree-icon { font-size: 0.9rem; }
+        .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .tree-children { display: none; margin-left: 10px; border-left: 1px solid #222; }
         .tree-children.open { display: block; }
 
-        /* Sidebar Edit Controls */
-        .node-actions { display: none; gap: 4px; margin-left: 4px; }
+        /* Sidebar Edit Actions */
+        .node-actions { display: none; gap: 4px; margin-left: auto; }
         .sidebar-editing .node-actions { display: flex; }
         .action-btn {
-            width: 18px; height: 18px; border-radius: 3px; border: none; cursor: pointer;
+            width: 16px; height: 16px; border-radius: 2px; border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff;
         }
         .btn-add { background: #333; } .btn-add:hover { background: var(--success); }
         .btn-del { background: #333; } .btn-del:hover { background: var(--danger); }
 
-        /* --- 4. MAIN EDITOR --- */
-        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); width: 100%; position: relative; }
+        /* --- 3. MAIN AREA --- */
+        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); position: relative; }
 
         .mobile-header {
-            display: none; height: var(--header-height); border-bottom: 1px solid var(--border-color);
-            align-items: center; padding: 0 16px; background: rgba(9,9,11,0.9); backdrop-filter: blur(10px);
+            display: none; height: 50px; border-bottom: 1px solid var(--border-color);
+            align-items: center; padding: 0 16px; background: #18181b;
             justify-content: space-between; flex-shrink: 0;
         }
 
         .editor-container { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         .editor-scroll { flex: 1; overflow-y: auto; padding: 2rem 10% 8rem 10%; }
 
-        .note-meta { margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-        .breadcrumbs { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 0.5rem; font-family: var(--font-mono); text-transform: uppercase; }
+        /* Note Header (Location 2 for Edit Button) */
+        .note-header-area {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;
+        }
+        .note-info { flex: 1; }
+        .breadcrumbs { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 0.5rem; text-transform: uppercase; }
         .note-title { 
-            width: 100%; background: transparent; border: none; font-size: 2rem; font-weight: 800; color: #fff; 
-            font-family: var(--font-main); margin-bottom: 10px;
+            width: 100%; background: transparent; border: none; font-size: 1.8rem; font-weight: 800; color: #fff; 
+            font-family: var(--font-main);
         }
 
-        /* Editor Content */
+        /* Editor */
         .editor-content { min-height: 60vh; font-size: 1.05rem; line-height: 1.7; color: #d4d4d4; white-space: pre-wrap; outline: none; }
-        .editor-content:empty:before { content: 'Select a topic or create one...'; color: #444; }
-        .editor-content h1, h2, h3 { color: #fff; margin-top: 1.5em; margin-bottom: 0.5em; }
-        .editor-content h2 { border-bottom: 1px solid #333; padding-bottom: 0.3em; color: var(--accent-color); }
-        .editor-content a { color: var(--accent-color); text-decoration: underline; }
-        .editor-content img { max-width: 100%; border-radius: 8px; border: 1px solid #333; }
+        .editor-content[contenteditable="false"] { opacity: 0.9; }
+        .editor-content h2 { margin-top: 1.5em; border-bottom: 1px solid #333; color: var(--accent-color); }
+        .editor-content img { max-width: 100%; border: 1px solid #333; border-radius: 6px; }
 
-        /* --- 5. RESPONSIVE --- */
-        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 90; backdrop-filter: blur(2px); }
-
-        @media (max-width: 900px) {
-            .editor-scroll { padding: 2rem 1.2rem 8rem 1.2rem; }
-            .mobile-header { display: flex; }
-            aside { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; box-shadow: 10px 0 50px rgba(0,0,0,0.8); }
-            aside.open { transform: translateX(0); }
-            .backdrop.open { display: block; }
-        }
-
-        /* --- 6. TOOLBAR --- */
+        /* --- 4. TOOLBAR --- */
         .toolbar {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            width: 95%; max-width: 550px; background: rgba(24,24,27,0.95);
-            backdrop-filter: blur(10px); border: 1px solid #333; border-radius: 12px;
-            padding: 8px; z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            display: none; gap: 5px; overflow-x: auto;
+            width: 90%; max-width: 500px; background: #18181b; border: 1px solid #333; 
+            border-radius: 8px; padding: 8px; z-index: 200; display: none; gap: 5px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); overflow-x: auto;
         }
         .toolbar.visible { display: flex; }
-        
         .tool-btn { 
-            flex: 0 0 auto; width: 36px; height: 36px; border-radius: 6px; border: none; 
-            background: #27272a; color: #a1a1aa; cursor: pointer; font-weight: bold; font-size: 0.9rem;
-            display: flex; align-items: center; justify-content: center;
+            flex: 0 0 auto; width: 32px; height: 32px; border-radius: 4px; border: none; 
+            background: #27272a; color: #aaa; cursor: pointer; font-weight: bold;
         }
-        .tool-btn:hover { background: #3f3f46; color: white; }
         .tool-btn.active { background: var(--accent-color); color: white; }
+
+        /* Responsive */
+        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 90; }
+        @media (max-width: 900px) {
+            .mobile-header { display: flex; }
+            aside { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; }
+            aside.open { transform: translateX(0); }
+            .backdrop.open { display: block; }
+            .editor-scroll { padding: 1.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -179,21 +158,14 @@
 
     <aside id="sidebar">
         <div class="sidebar-header">
-            <div class="header-controls">
-                <div class="app-logo">IM Curriculum V5</div>
-                <div class="btn-group">
-                    <button id="btnEditSidebar" class="btn-xs" onclick="toggleSidebarEdit()">Edit Sidebar</button>
-                    <button id="btnEditNote" class="btn-xs" onclick="toggleNoteEdit()">Read Only</button>
-                </div>
+            <div class="header-row">
+                <div class="app-logo">IM Curriculum</div>
+                <button id="btnEditSidebar" class="btn-xs" onclick="toggleSidebarEdit()">Edit Sidebar</button>
             </div>
-            <div class="search-wrapper">
-                <input type="text" id="sidebar-search" placeholder="Search notes...">
-                <div id="search-results"></div>
-            </div>
+            <input type="text" id="sidebar-search" placeholder="Search...">
+            <div id="search-results"></div>
         </div>
-        
-        <div id="tree-root" class="tree-scroll">
-            </div>
+        <div id="tree-root" class="tree-scroll"></div>
     </aside>
 
     <main>
@@ -205,9 +177,12 @@
 
         <div class="editor-container">
             <div class="editor-scroll">
-                <div class="note-meta">
-                    <div id="breadcrumbs" class="breadcrumbs">Start</div>
-                    <input type="text" id="noteTitle" class="note-title" placeholder="No Topic Selected" readonly>
+                <div class="note-header-area">
+                    <div class="note-info">
+                        <div id="breadcrumbs" class="breadcrumbs">Select a topic</div>
+                        <input type="text" id="noteTitle" class="note-title" placeholder="No Note Selected" readonly>
+                    </div>
+                    <button id="btnEditNote" class="btn-xs" onclick="toggleNoteEdit()">Read Only</button>
                 </div>
                 <div id="editor" class="editor-content" spellcheck="false"></div>
             </div>
@@ -215,23 +190,17 @@
     </main>
 
     <div class="toolbar" id="toolbar">
-        <button class="tool-btn" data-cmd="undo">↺</button>
-        <button class="tool-btn" data-cmd="redo">↻</button>
-        <div style="width:1px; background:#444; margin:0 4px;"></div>
         <button class="tool-btn" data-cmd="bold">B</button>
         <button class="tool-btn" data-cmd="italic">I</button>
         <button class="tool-btn" data-cmd="underline">U</button>
-        <div style="width:1px; background:#444; margin:0 4px;"></div>
         <button class="tool-btn" data-cmd="formatBlock" data-val="H2">H2</button>
-        <button class="tool-btn" data-cmd="formatBlock" data-val="H3">H3</button>
         <button class="tool-btn" data-cmd="insertUnorderedList">•</button>
-        <div style="width:1px; background:#444; margin:0 4px;"></div>
         <button class="tool-btn" id="btn-link">🔗</button>
         <button class="tool-btn" id="btn-img">🖼️</button>
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIG ---
+        // --- FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBd9E9VkE7bllIN13NYGz801F4Jue_VzVk",
             authDomain: "im-helper-d3a4a.firebaseapp.com",
@@ -243,67 +212,109 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // --- 2. GLOBAL STATE ---
-        let currentNoteId = null;
-        let isSidebarEditing = false;
-        let isNoteEditing = false;
-        
-        // --- 3. DATA STRUCTURE (Recursive) ---
-        // type: 'folder' or 'file'
-        // content: only for files
-        // children: array for folders
+        // --- DATA STRUCTURE (Parsed from PDF ) ---
+        // Deeply nested: Folder -> Folder -> File
         let treeData = [
             {
-                id: "cvs", title: "1. Cardiovascular", type: "folder", isOpen: true, children: [
-                    {
-                        id: "cvs-hx-exam", title: "History & Examination", type: "folder", children: [
-                            {
-                                id: "cvs-hx-taking", title: "History Taking", type: "folder", children: [
-                                    [cite_start]{ id: "cvs-sx-grading", title: "Grading Effort Intolerance [cite: 2]", type: "file", content: "NYHA Classification I-IV details here..." },
-                                    [cite_start]{ id: "cvs-sx-sob", title: "SOB / Orthopnoea / PND [cite: 2]", type: "file", content: "Details on shortness of breath patterns..." },
-                                    [cite_start]{ id: "cvs-sx-pain", title: "Chest Pain [cite: 2]", type: "file", content: "SOCRATES method for chest pain..." }
-                                ]
-                            },
-                            {
-                                id: "cvs-risks", title: "Risk Factors", type: "folder", children: [
-                                    [cite_start]{ id: "cvs-rf-ivdu", title: "IVDU & Rheumatic Fever [cite: 2]", type: "file", content: "Infective endocarditis risks..." },
-                                    [cite_start]{ id: "cvs-rf-cad", title: "CAD Risk Factors [cite: 2]", type: "file", content: "Diabetes, HTN, Smoking, Lipids..." }
-                                ]
-                            },
-                            {
-                                id: "cvs-pe", title: "Physical Exam", type: "folder", children: [
-                                    [cite_start]{ id: "cvs-pe-hands", title: "Hands (Clubbing/Splinter) [cite: 2]", type: "file", content: "Signs of IE in hands..." },
-                                    [cite_start]{ id: "cvs-pe-precord", title: "Precordium (JVP/Apex) [cite: 2]", type: "file", content: "JVP measurement, Apex beat character..." }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: "cvs-htn", title: "Hypertension", type: "folder", children: [
-                             [cite_start]{ id: "htn-def", title: "Definitions & Target Organ [cite: 2]", type: "file", content: "Stage 1, Stage 2, Hypertensive urgency..." },
-                             [cite_start]{ id: "htn-sec", title: "Secondary Causes [cite: 2]", type: "file", content: "Renal artery stenosis, Conn's, etc..." }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: "resp", title: "2. Respiratory", type: "folder", children: [
-                    { id: "asthma", title: "Bronchial Asthma", type: "folder", children: [
-                        [cite_start]{ id: "asthma-dx", title: "Diagnosis & Ddx [cite: 4]", type: "file", content: "Reversibility testing..." },
-                        [cite_start]{ id: "asthma-acute", title: "Acute Exacerbation [cite: 4]", type: "file", content: "O2, Nebs, Steroids..." }
+                id: "1", title: "1. Cardiovascular", type: "folder", isOpen: false, children: [
+                    { id: "1-1", title: "History & Exam", type: "folder", children: [
+                        { id: "1-1-1", title: "History Taking", type: "folder", children: [
+                            { id: "1-1-1-a", title: "Symptoms", type: "file", content: "<b>Grading effort intolerance:</b> NYHA Class I-IV.<br><b>SOB:</b> Orthopnoea, PND.<br><b>Pain:</b> Chest pain character.<br><b>Others:</b> Palpitations, Syncope." },
+                            { id: "1-1-1-b", title: "Risk Factors", type: "file", content: "IVDU, Rheumatic fever history, CAD risks (Smoking, DM, HTN, Lipids)." }
+                        ]},
+                        { id: "1-1-2", title: "Physical Exam", type: "folder", children: [
+                             { id: "1-1-2-a", title: "General", type: "file", content: "Clubbing, Cyanosis, Splinter haemorrhages (IE), Pallor." },
+                             { id: "1-1-2-b", title: "Precordium", type: "file", content: "Apex beat, Heaves, Thrills, Murmurs." }
+                        ]}
+                    ]},
+                    { id: "1-2", title: "Hypertension", type: "folder", children: [
+                        { id: "1-2-1", title: "Basics", type: "file", content: "Definitions, Target Organ Damage." },
+                        { id: "1-2-2", title: "Secondary HTN", type: "file", content: "Renal artery stenosis, Conn's, Cushing's." }
+                    ]},
+                    { id: "1-3", title: "Ischaemic Heart Disease", type: "folder", children: [
+                        { id: "1-3-1", title: "Acute Coronary Syndrome", type: "file", content: "STEMI vs NSTEMI vs UA. Management algorithm." },
+                        { id: "1-3-2", title: "Investigations", type: "file", content: "Stress test, Angiography." }
+                    ]},
+                    { id: "1-4", title: "Heart Failure", type: "folder", children: [
+                        { id: "1-4-1", title: "Types", type: "file", content: "Acute vs Chronic. HFpEF." },
+                        { id: "1-4-2", title: "Management", type: "file", content: "BB, ACEi, MRA, SGLT2i." }
                     ]}
                 ]
             },
             {
-                id: "renal", title: "3. Renal System", type: "folder", children: [
-                    { id: "aki", title: "Acute Kidney Injury", type: "folder", children: [
-                         [cite_start]{ id: "aki-types", title: "Prerenal / Intrinsic / Post [cite: 10]", type: "file", content: "..."}
+                id: "2", title: "2. Respiratory", type: "folder", isOpen: false, children: [
+                    { id: "2-1", title: "Asthma", type: "folder", children: [
+                        { id: "2-1-1", title: "Diagnosis", type: "file", content: "Spirometry reversibility." },
+                        { id: "2-1-2", title: "Acute Exacerbation", type: "file", content: "O2, Salbutamol, Ipratropium, Steroids." }
+                    ]},
+                    { id: "2-2", title: "COPD", type: "folder", children: [
+                        { id: "2-2-1", title: "Diagnosis", type: "file", content: "Smoking Hx, Irreversible obstruction." },
+                        { id: "2-2-2", title: "Management", type: "file", content: "LAMA, LABA, ICS." }
+                    ]},
+                    { id: "2-3", title: "Infections", type: "folder", children: [
+                        { id: "2-3-1", title: "Pneumonia", type: "file", content: "CURB-65 Score. Antibiotics." },
+                        { id: "2-3-2", title: "Tuberculosis", type: "file", content: "Screening (Mantoux). Treatment (DOTS)." }
                     ]}
+                ]
+            },
+            {
+                id: "3", title: "3. Renal", type: "folder", isOpen: false, children: [
+                    { id: "3-1", title: "AKI", type: "folder", children: [
+                        { id: "3-1-1", title: "Causes", type: "file", content: "Prerenal, Intrinsic, Postrenal." },
+                        { id: "3-1-2", title: "Management", type: "file", content: "Fluid balance, Dialysis indications." }
+                    ]},
+                    { id: "3-2", title: "CKD", type: "file", content: "Staging 1-5. Complications (Bone, Anaemia)." }
+                ]
+            },
+            {
+                id: "4", title: "4. Infectious Disease", type: "folder", isOpen: false, children: [
+                    { id: "4-1", title: "General", type: "file", content: "PUO, Sepsis 6." },
+                    { id: "4-2", title: "Vector Borne", type: "folder", children: [
+                        { id: "4-2-1", title: "Dengue", type: "file", content: "Febrile, Critical, Recovery phases." },
+                        { id: "4-2-2", title: "Malaria", type: "file", content: "Plasmodium types. Severe malaria signs." }
+                    ]}
+                ]
+            },
+            {
+                id: "5", title: "5. GIT & Liver", type: "folder", isOpen: false, children: [
+                    { id: "5-1", title: "Hepatology", type: "folder", children: [
+                        { id: "5-1-1", title: "Cirrhosis", type: "file", content: "Stigmata of CLD. Child-Pugh." },
+                        { id: "5-1-2", title: "Portal HTN", type: "file", content: "Varices, Ascites." }
+                    ]}
+                ]
+            },
+            {
+                id: "6", title: "6. Neurology", type: "folder", isOpen: false, children: [
+                    { id: "6-1", title: "Stroke", type: "file", content: "Bamford Classification. Thrombolysis." },
+                    { id: "6-2", title: "Epilepsy", type: "file", content: "Seizure types. Status Epilepticus." }
+                ]
+            },
+            {
+                id: "7", title: "7. Endocrinology", type: "folder", isOpen: false, children: [
+                    { id: "7-1", title: "Diabetes", type: "file", content: "DKA vs HHS. Chronic complications." },
+                    { id: "7-2", title: "Thyroid", type: "file", content: "Graves vs Hashimoto." }
+                ]
+            },
+            {
+                id: "8", title: "8. Haematology", type: "folder", isOpen: false, children: [
+                    { id: "8-1", title: "Anaemia", type: "file", content: "Thalassaemia, Iron deficiency." },
+                    { id: "8-2", title: "Malignancy", type: "file", content: "Leukaemia, Lymphoma." }
+                ]
+            },
+            {
+                id: "9", title: "9. Rheumatology", type: "folder", isOpen: false, children: [
+                    { id: "9-1", title: "Joints", type: "file", content: "RA vs OA vs Gout." },
+                    { id: "9-2", title: "SLE", type: "file", content: "Diagnostic criteria." }
                 ]
             }
         ];
 
-        // --- 4. INITIALIZATION ---
+        // --- STATE ---
+        let currentNoteId = null;
+        let isSidebarEditing = false;
+        let isNoteEditing = false;
+
+        // --- INIT ---
         window.addEventListener('DOMContentLoaded', () => {
             renderTree(treeData, document.getElementById('tree-root'));
             
@@ -315,98 +326,106 @@
             const editor = document.getElementById('editor');
             editor.addEventListener('mouseup', updateToolbarState);
             editor.addEventListener('keyup', updateToolbarState);
+            
             document.querySelectorAll('.tool-btn').forEach(btn => {
-                btn.addEventListener('mousedown', (e) => e.preventDefault()); // prevent losing focus
-                btn.addEventListener('click', handleToolbarAction);
+                btn.addEventListener('mousedown', (e) => e.preventDefault());
+                btn.addEventListener('click', handleToolbar);
             });
-
-            // Viewport keyboard fix
-            if (window.visualViewport) {
-                window.visualViewport.addEventListener('resize', () => {
-                    const toolbar = document.getElementById('toolbar');
-                    if (isNoteEditing && window.visualViewport.height < window.innerHeight) {
-                        toolbar.style.bottom = `${window.innerHeight - window.visualViewport.height + 10}px`;
-                    } else {
-                        toolbar.style.bottom = '20px';
-                    }
-                });
-            }
         });
 
-        // --- 5. RECURSIVE TREE RENDERER ---
-        function renderTree(nodes, container, depth = 0) {
+        // --- TREE RENDERER ---
+        function renderTree(nodes, container) {
             container.innerHTML = '';
             
             nodes.forEach(node => {
-                const nodeEl = document.createElement('div');
-                nodeEl.className = 'tree-node';
-                
-                // Content Row
-                const contentEl = document.createElement('div');
-                contentEl.className = `tree-content ${currentNoteId === node.id ? 'active' : ''}`;
-                contentEl.style.paddingLeft = `${12 + (depth * 14)}px`;
-                contentEl.dataset.id = node.id;
-                
-                // Click handlers
-                contentEl.onclick = (e) => handleNodeClick(e, node);
+                const el = document.createElement('div');
+                el.className = 'tree-node';
 
-                // Icon logic
-                let iconHtml = '';
-                if (node.type === 'folder') {
-                    iconHtml = `<div class="tree-toggle ${node.isOpen ? 'rotated' : ''}">▶</div>`;
-                    iconHtml += `<div class="tree-icon">${node.isOpen ? '📂' : '📁'}</div>`;
-                } else {
-                    iconHtml = `<div class="tree-toggle"></div>`; // Spacer
-                    iconHtml += `<div class="tree-icon">📄</div>`;
-                }
+                // Node Content
+                const content = document.createElement('div');
+                content.className = `tree-content ${currentNoteId === node.id ? 'active' : ''}`;
+                content.onclick = (e) => {
+                    if (e.target.closest('.action-btn')) return;
+                    if (node.type === 'folder') {
+                        node.isOpen = !node.isOpen;
+                        renderTree(treeData, document.getElementById('tree-root'));
+                    } else {
+                        loadNote(node);
+                    }
+                };
 
-                // Title (Editable if sidebar edit mode)
-                let titleHtml = `<div class="tree-label">${node.title}</div>`;
+                // Icons
+                let icon = node.type === 'folder' 
+                    ? `<div class="tree-toggle ${node.isOpen?'rotated':''}">▶</div><div class="tree-icon">📂</div>` 
+                    : `<div style="width:14px"></div><div class="tree-icon">📄</div>`;
 
-                // Edit Buttons (Add/Del)
-                let actionsHtml = `
+                // Actions (Edit Mode)
+                let actions = `
                     <div class="node-actions">
-                        ${node.type === 'folder' ? `<button class="action-btn btn-add" onclick="addNode('${node.id}', event)">+</button>` : ''}
-                        <button class="action-btn btn-del" onclick="deleteNode('${node.id}', event)">x</button>
+                        ${node.type==='folder' ? `<button class="action-btn btn-add" onclick="addNode('${node.id}')">+</button>` : ''}
+                        <button class="action-btn btn-del" onclick="deleteNode('${node.id}')">x</button>
                     </div>
                 `;
 
-                contentEl.innerHTML = `${iconHtml}${titleHtml}${actionsHtml}`;
-                nodeEl.appendChild(contentEl);
+                content.innerHTML = `${icon}<div class="tree-label">${node.title}</div>${actions}`;
+                el.appendChild(content);
 
-                // Children Container
+                // Children
                 if (node.children) {
-                    const childrenEl = document.createElement('div');
-                    childrenEl.className = `tree-children ${node.isOpen ? 'open' : ''}`;
-                    // Recursive call
-                    renderTree(node.children, childrenEl, depth + 1);
-                    nodeEl.appendChild(childrenEl);
+                    const childContainer = document.createElement('div');
+                    childContainer.className = `tree-children ${node.isOpen?'open':''}`;
+                    renderTree(node.children, childContainer);
+                    el.appendChild(childContainer);
                 }
 
-                container.appendChild(nodeEl);
+                container.appendChild(el);
             });
+        }
+
+        // --- NOTE LOGIC ---
+        async function loadNote(node) {
+            currentNoteId = node.id;
             
-            // Add "Root" add button if at top level and editing
-            if (depth === 0 && isSidebarEditing) {
-                const addRootBtn = document.createElement('div');
-                addRootBtn.style.padding = "10px";
-                addRootBtn.innerHTML = `<button class="btn-xs" style="width:100%" onclick="addRootNode()">+ Add New Topic</button>`;
-                container.appendChild(addRootBtn);
+            // Highlight
+            document.querySelectorAll('.tree-content').forEach(el => el.classList.remove('active'));
+            renderTree(treeData, document.getElementById('tree-root')); // Re-render to show active state
+
+            if (window.innerWidth <= 900) closeSidebar();
+
+            // Set Breadcrumbs/Title
+            document.getElementById('breadcrumbs').innerText = "Curriculum"; // Could be dynamic
+            document.getElementById('noteTitle').value = node.title;
+            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
+
+            // Firebase Load
+            try {
+                const doc = await db.collection('notes').doc(node.id).get();
+                if (doc.exists) {
+                    document.getElementById('editor').innerHTML = doc.data().content;
+                } else {
+                    document.getElementById('editor').innerHTML = node.content || '';
+                }
+            } catch (e) {
+                document.getElementById('editor').innerHTML = node.content || '';
             }
         }
 
-        // --- 6. TREE INTERACTION ---
-        function handleNodeClick(e, node) {
-            if (e.target.closest('.action-btn')) return; // Ignore if clicked delete/add
+        async function saveNote() {
+            if (!currentNoteId) return;
+            const content = document.getElementById('editor').innerHTML;
+            
+            // Local Update
+            const node = findNode(treeData, currentNoteId);
+            if(node) node.content = content;
 
-            if (node.type === 'folder') {
-                node.isOpen = !node.isOpen;
-                renderTree(treeData, document.getElementById('tree-root'));
-            } else {
-                loadNote(node);
-            }
+            // Firebase Save
+            await db.collection('notes').doc(currentNoteId).set({
+                content: content,
+                lastUpdated: new Date()
+            }, { merge: true });
         }
 
+        // --- TREE HELPERS ---
         function findNode(nodes, id) {
             for (let node of nodes) {
                 if (node.id === id) return node;
@@ -418,140 +437,86 @@
             return null;
         }
 
-        // --- 7. SIDEBAR EDITING LOGIC ---
+        function addNode(parentId) {
+            const parent = findNode(treeData, parentId);
+            if(!parent) return;
+            const title = prompt("Name:");
+            if(!title) return;
+            const type = confirm("Create Folder? (Cancel for File)") ? 'folder' : 'file';
+            
+            parent.children.push({
+                id: Date.now().toString(),
+                title, type, 
+                children: type==='folder' ? [] : undefined,
+                content: '', isOpen: true
+            });
+            parent.isOpen = true;
+            renderTree(treeData, document.getElementById('tree-root'));
+        }
+
+        function deleteNode(id) {
+            if(!confirm("Delete?")) return;
+            function remove(nodes) {
+                const idx = nodes.findIndex(n => n.id === id);
+                if (idx > -1) { nodes.splice(idx, 1); return true; }
+                for(let n of nodes) { if(n.children && remove(n.children)) return true; }
+            }
+            remove(treeData);
+            renderTree(treeData, document.getElementById('tree-root'));
+            if(currentNoteId === id) document.getElementById('editor').innerHTML = '';
+        }
+
+        // --- SEARCH ---
+        function handleSearch(e) {
+            const query = e.target.value.toLowerCase();
+            const resBox = document.getElementById('search-results');
+            resBox.innerHTML = '';
+            
+            if(query.length < 2) { resBox.style.display = 'none'; return; }
+
+            let matches = [];
+            function traverse(nodes, path) {
+                nodes.forEach(n => {
+                    const myPath = path ? `${path} > ${n.title}` : n.title;
+                    if(n.title.toLowerCase().includes(query) || (n.content && n.content.toLowerCase().includes(query))) {
+                        matches.push({ node: n, path: myPath });
+                    }
+                    if(n.children) traverse(n.children, myPath);
+                });
+            }
+            traverse(treeData, "");
+            
+            if(matches.length > 0) {
+                resBox.style.display = 'block';
+                matches.forEach(m => {
+                    const d = document.createElement('div');
+                    d.className = 'search-item';
+                    d.innerHTML = `<div class="search-path">${m.path}</div><div>${m.node.title}</div>`;
+                    d.onclick = () => {
+                        if(m.node.type === 'file') loadNote(m.node);
+                        else alert("Folder found: Expand tree to view.");
+                        resBox.style.display = 'none';
+                    };
+                    resBox.appendChild(d);
+                });
+            } else {
+                resBox.style.display = 'block';
+                resBox.innerHTML = '<div style="padding:10px; color:#666">No results</div>';
+            }
+        }
+
+        // --- TOGGLES ---
         function toggleSidebarEdit() {
             isSidebarEditing = !isSidebarEditing;
             const btn = document.getElementById('btnEditSidebar');
             const sidebar = document.getElementById('sidebar');
-            
             btn.innerText = isSidebarEditing ? 'Done' : 'Edit Sidebar';
             btn.classList.toggle('active', isSidebarEditing);
             
-            if (isSidebarEditing) sidebar.classList.add('sidebar-editing');
+            if(isSidebarEditing) sidebar.classList.add('sidebar-editing');
             else sidebar.classList.remove('sidebar-editing');
-            
-            // Re-render to show/hide buttons
-            renderTree(treeData, document.getElementById('tree-root'));
         }
 
-        function addNode(parentId, e) {
-            e.stopPropagation();
-            const parent = findNode(treeData, parentId);
-            if (!parent) return;
-
-            const title = prompt("Name of new item:");
-            if (!title) return;
-
-            const type = confirm("Create a FOLDER? (Cancel for FILE)") ? 'folder' : 'file';
-            
-            const newNode = {
-                id: Date.now().toString(),
-                title: title,
-                type: type,
-                children: type === 'folder' ? [] : undefined,
-                content: type === 'file' ? "Start typing..." : undefined,
-                isOpen: true
-            };
-
-            parent.children.push(newNode);
-            parent.isOpen = true; // Ensure open
-            renderTree(treeData, document.getElementById('tree-root'));
-            // Save tree state (mock)
-            console.log("Tree updated", treeData);
-        }
-
-        function addRootNode() {
-            const title = prompt("Name of new Root Topic:");
-            if (!title) return;
-            
-            treeData.push({
-                id: Date.now().toString(),
-                title: title,
-                type: 'folder',
-                children: [],
-                isOpen: true
-            });
-            renderTree(treeData, document.getElementById('tree-root'));
-        }
-
-        function deleteNode(id, e) {
-            e.stopPropagation();
-            if (!confirm("Delete this item?")) return;
-            
-            function removeRecursive(nodes) {
-                const idx = nodes.findIndex(n => n.id === id);
-                if (idx > -1) {
-                    nodes.splice(idx, 1);
-                    return true;
-                }
-                for (let node of nodes) {
-                    if (node.children && removeRecursive(node.children)) return true;
-                }
-                return false;
-            }
-            
-            removeRecursive(treeData);
-            renderTree(treeData, document.getElementById('tree-root'));
-            
-            if (currentNoteId === id) {
-                document.getElementById('editor').innerHTML = '';
-                document.getElementById('noteTitle').value = '';
-                currentNoteId = null;
-            }
-        }
-
-        // --- 8. NOTE LOGIC ---
-        async function loadNote(node) {
-            currentNoteId = node.id;
-            
-            // Highlight sidebar
-            document.querySelectorAll('.tree-content').forEach(el => el.classList.remove('active'));
-            const activeEl = document.querySelector(`.tree-content[data-id="${node.id}"]`);
-            if (activeEl) activeEl.classList.add('active');
-
-            // Mobile handling
-            if (window.innerWidth <= 900) closeSidebar();
-
-            // Breadcrumbs (Simple version, ideally recursive find parent)
-            document.getElementById('breadcrumbs').innerText = "Viewing Note";
-            document.getElementById('noteTitle').value = node.title;
-            
-            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
-
-            // 1. Check local tree data first (newly created notes)
-            if (node.content && node.content !== "Start typing...") {
-                document.getElementById('editor').innerHTML = node.content;
-            } else {
-                // 2. Try Firebase
-                try {
-                    const doc = await db.collection('notes').doc(node.id).get();
-                    if (doc.exists) {
-                        document.getElementById('editor').innerHTML = doc.data().content;
-                    } else {
-                        document.getElementById('editor').innerHTML = node.content || '';
-                    }
-                } catch (e) {
-                    document.getElementById('editor').innerHTML = node.content || '';
-                }
-            }
-        }
-
-        async function saveNote() {
-            if (!currentNoteId) return;
-            const content = document.getElementById('editor').innerHTML;
-            
-            // Update local tree
-            const node = findNode(treeData, currentNoteId);
-            if (node) node.content = content;
-
-            // Save to Firebase
-            await db.collection('notes').doc(currentNoteId).set({
-                content: content,
-                lastUpdated: new Date()
-            }, { merge: true });
-        }
-
-        // --- 9. NOTE EDITING TOGGLE ---
         function toggleNoteEdit() {
             isNoteEditing = !isNoteEditing;
             const btn = document.getElementById('btnEditNote');
@@ -561,118 +526,37 @@
             editor.contentEditable = isNoteEditing;
             btn.innerText = isNoteEditing ? 'Edit On' : 'Read Only';
             btn.classList.toggle('active', isNoteEditing);
-            btn.classList.toggle('danger', isNoteEditing); // Visual Cue
-
-            if (isNoteEditing) toolbar.classList.add('visible');
+            
+            if(isNoteEditing) toolbar.classList.add('visible');
             else toolbar.classList.remove('visible');
         }
 
-        // --- 10. SEARCH LOGIC (Updated to index live Tree) ---
-        function handleSearch(e) {
-            const query = e.target.value.toLowerCase();
-            const resultsBox = document.getElementById('search-results');
-            resultsBox.innerHTML = '';
-            
-            if (query.length < 2) {
-                resultsBox.style.display = 'none';
-                return;
-            }
-
-            let results = [];
-            
-            function traverseSearch(nodes, path) {
-                nodes.forEach(node => {
-                    const currentPath = path ? `${path} > ${node.title}` : node.title;
-                    
-                    // Match Title
-                    if (node.title.toLowerCase().includes(query)) {
-                        results.push({ node, path: currentPath, type: 'Title Match' });
-                    } 
-                    // Match Content (only files)
-                    else if (node.type === 'file' && node.content && node.content.toLowerCase().includes(query)) {
-                        results.push({ node, path: currentPath, type: 'Content Match' });
-                    }
-
-                    if (node.children) traverseSearch(node.children, currentPath);
-                });
-            }
-
-            traverseSearch(treeData, "");
-
-            if (results.length > 0) {
-                resultsBox.style.display = 'block';
-                results.forEach(res => {
-                    const div = document.createElement('div');
-                    div.className = 'search-item';
-                    div.innerHTML = `
-                        <div class="search-path">${res.path}</div>
-                        <div class="search-title">${res.node.title}</div>
-                    `;
-                    div.onclick = () => {
-                        if (res.node.type === 'file') {
-                            loadNote(res.node);
-                        } else {
-                            // Expand folder if matched (simple implementation: just alert or log)
-                            alert("Found Folder: " + res.node.title + ". Expand in tree to view.");
-                        }
-                        resultsBox.style.display = 'none';
-                        document.getElementById('sidebar-search').value = '';
-                    };
-                    resultsBox.appendChild(div);
-                });
-            } else {
-                resultsBox.style.display = 'block';
-                resultsBox.innerHTML = '<div style="padding:10px; color:#666; text-align:center">No results</div>';
-            }
-        }
-
-        // --- 11. TOOLBAR & UTILS ---
-        function handleToolbarAction(e) {
+        // --- UTILS ---
+        function handleToolbar(e) {
             e.preventDefault();
             const btn = e.currentTarget;
-            const cmd = btn.dataset.cmd;
-            const val = btn.dataset.val;
-            const id = btn.id;
-
-            if (id === 'btn-link') {
-                const url = prompt("URL:");
-                if(url) document.execCommand('createLink', false, url);
-            } else if (id === 'btn-img') {
-                const url = prompt("Image URL:");
-                if(url) document.execCommand('insertHTML', false, `<img src="${url}">`);
+            if(btn.id === 'btn-link') {
+                const url = prompt("URL:"); if(url) document.execCommand('createLink', false, url);
+            } else if(btn.id === 'btn-img') {
+                const url = prompt("Img URL:"); if(url) document.execCommand('insertHTML', false, `<img src="${url}">`);
             } else {
-                document.execCommand(cmd, false, val);
+                document.execCommand(btn.dataset.cmd, false, btn.dataset.val);
             }
             updateToolbarState();
         }
-
         function updateToolbarState() {
-            document.querySelectorAll('[data-cmd]').forEach(btn => {
+            document.querySelectorAll('.tool-btn').forEach(btn => {
                 const cmd = btn.dataset.cmd;
-                try {
-                    if (document.queryCommandState(cmd)) btn.classList.add('active');
-                    else btn.classList.remove('active');
-                } catch(e){}
+                if(cmd && document.queryCommandState(cmd)) btn.classList.add('active');
+                else btn.classList.remove('active');
             });
         }
-
         function debounce(func, wait) {
             let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
+            return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), wait); };
         }
-
-        function openSidebar() {
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('backdrop').classList.add('open');
-        }
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('backdrop').classList.remove('open');
-        }
-
+        function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('backdrop').classList.add('open'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('backdrop').classList.remove('open'); }
     </script>
 </body>
 </html>
