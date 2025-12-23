@@ -1,570 +1,820 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>IM Curriculum Tracker V2</title>
-
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <title>MedStudent Pro: IM Curriculum</title>
     <style>
-        /* --- 1. CSS VARIABLES --- */
         :root {
-            --bg-body: #0e0e0e; --bg-sidebar: #121212; --bg-card: #1e1e1e;
-            --text-main: #e0e0e0; --text-muted: #808080; 
-            --accent-color: #7f6df2; --must-know: #ef4444; --good-know: #eab308;
-            --border-color: #2a2a2a; 
-            --font-editor: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --header-height: 60px;
+            --primary: #6200ea;
+            --primary-dark: #3700b3;
+            --bg-color: #f4f4f9;
+            --sidebar-bg: #ffffff;
+            --text-main: #333;
+            --text-light: #666;
+            --border: #e0e0e0;
+            --toolbar-bg: #ffffff;
         }
 
-        /* --- 2. BASE STYLES --- */
-        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
-        
         body {
-            font-family: var(--font-editor); background-color: var(--bg-body); color: var(--text-main);
-            height: 100dvh; display: flex; overflow: hidden; font-size: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        /* --- 3. SIDEBAR --- */
-        aside {
-            width: 340px; background: var(--bg-sidebar); border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column; z-index: 100; 
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative; flex-shrink: 0;
+        /* --- Header / Search --- */
+        #app-header {
+            background: var(--primary);
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        .sidebar-header { 
-            height: var(--header-height); padding: 0 1.2rem; border-bottom: 1px solid var(--border-color); 
-            display: flex; justify-content: space-between; align-items: center; background: var(--bg-sidebar);
-        }
-        .app-logo { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; color: var(--text-main); }
-        
-        /* Edit Mode Toggle */
-        .edit-toggle { font-size: 0.75rem; cursor: pointer; color: var(--text-muted); padding: 6px 12px; border: 1px solid #333; border-radius: 4px; transition: all 0.2s; font-weight: 600; }
-        .edit-toggle.active { background: #ef4444; color: white; border-color: #ef4444; }
-
-        .checklist-scroll { flex: 1; overflow-y: auto; padding-bottom: 4rem; }
-
-        /* Tree Structure */
-        .category-group { border-bottom: 1px solid #1a1a1a; }
-        .category-header {
-            padding: 1rem 1.2rem; font-size: 0.85rem; font-weight: 700; color: var(--text-main);
-            text-transform: uppercase; letter-spacing: 1px; cursor: pointer; display: flex; justify-content: space-between;
-            background: #181818; position: sticky; top:0; z-index: 10;
-        }
-        .category-header:hover { background: #222; }
-        .category-header .arrow { transition: transform 0.2s; }
-        .category-header.collapsed .arrow { transform: rotate(-90deg); }
-
-        .subgroup-header {
-            padding: 0.6rem 1.2rem; background: #141414; font-size: 0.8rem; color: var(--accent-color);
-            font-weight: 600; cursor: pointer; border-top: 1px solid #222; display: flex; align-items: center; gap: 8px;
-        }
-        .subgroup-header::before { content: '▸'; display: inline-block; transition: transform 0.2s; }
-        .subgroup-header.open::before { transform: rotate(90deg); }
-
-        .topic-list { display: block; }
-        .topic-list.hidden { display: none; }
-
-        .topic-item {
-            padding: 0.6rem 1.2rem 0.6rem 2rem; cursor: pointer; font-size: 0.9rem; color: #b0b0b0;
-            display: flex; align-items: flex-start; gap: 10px; transition: all 0.1s; border-left: 3px solid transparent;
-            background: var(--bg-sidebar);
-        }
-        .topic-item:hover { background: #1f1f1f; color: #fff; }
-        .topic-item.active { background: rgba(127, 109, 242, 0.15); color: #fff; border-left-color: var(--accent-color); font-weight: 500; }
-        
-        .indicator { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-        .indicator.must { background-color: var(--must-know); box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
-        .indicator.good { background-color: var(--good-know); }
-
-        /* --- 4. MAIN EDITOR --- */
-        main { flex: 1; display: flex; flex-direction: column; background: var(--bg-body); position: relative; width: 100%; overflow: hidden; }
-
-        .mobile-header {
-            display: none; height: var(--header-height); border-bottom: 1px solid var(--border-color);
-            align-items: center; padding: 0 1rem; background: rgba(14,14,14,0.95); backdrop-filter: blur(10px);
-            z-index: 40; justify-content: space-between; flex-shrink: 0;
+        #menu-toggle {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0 10px;
         }
 
-        .editor-container { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-        .editor-scroll-area { flex: 1; overflow-y: auto; padding: 2rem 15% 8rem 15%; scroll-behavior: smooth; }
-
-        .note-meta { margin-bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-        .breadcrumbs { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 0.5rem; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.5px; }
-        .note-title-input { 
-            width: 100%; background: transparent; border: none; font-size: 2rem; font-weight: 800; color: var(--text-main); 
-            line-height: 1.2; font-family: var(--font-editor); 
+        #search-container {
+            flex-grow: 1;
+            margin: 0 15px;
+            position: relative;
         }
 
-        /* Editor Content */
-        .editor-content { min-height: 60vh; font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; white-space: pre-wrap; border: none; }
-        .editor-content:empty:before { content: 'Start typing notes...'; color: #444; }
-        .editor-content img { max-width: 100%; border-radius: 8px; margin: 10px 0; border: 1px solid #333; }
-        .editor-content iframe { width: 100%; aspect-ratio: 16/9; border-radius: 8px; margin: 10px 0; border: none; }
-        .editor-content h1 { font-size: 1.8em; margin: 1em 0 0.5em; color: #fff; }
-        .editor-content h2 { font-size: 1.4em; margin: 1em 0 0.5em; color: #eee; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        .editor-content h3 { font-size: 1.1em; margin: 1em 0 0.5em; color: var(--accent-color); }
-        .editor-content blockquote { border-left: 3px solid var(--accent-color); padding-left: 1rem; color: #999; margin: 1em 0; background: #181818; padding: 0.5rem; border-radius: 0 4px 4px 0; }
-        .editor-content ul, .editor-content ol { margin-left: 1.5rem; }
-
-        /* --- 5. RESPONSIVE --- */
-        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 90; backdrop-filter: blur(4px); }
-
-        @media (max-width: 900px) {
-            .editor-scroll-area { padding: 2rem 1.5rem 8rem 1.5rem; }
-            .mobile-header { display: flex; }
-            aside { position: absolute; height: 100%; transform: translateX(-100%); width: 85%; box-shadow: 10px 0 50px rgba(0,0,0,0.8); }
-            aside.open { transform: translateX(0); }
-            .backdrop.open { display: block; }
+        #global-search {
+            width: 100%;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            background: rgba(255,255,255,0.9);
         }
 
-        /* --- 6. SCROLLABLE TOOLBAR --- */
-        .toolbar-wrapper {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 600px; background: rgba(30,30,30,0.9);
-            backdrop-filter: blur(10px); border: 1px solid #444; border-radius: 12px;
-            padding: 8px; z-index: 200; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        #search-results {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
         }
-        .toolbar-scroll {
-            display: flex; gap: 5px; overflow-x: auto; white-space: nowrap;
-            padding-bottom: 2px; scrollbar-width: none;
-        }
-        .toolbar-scroll::-webkit-scrollbar { display: none; }
-        
-        .tool-btn { 
-            flex: 0 0 auto; width: 40px; height: 40px; border-radius: 8px; border: none; 
-            background: #333; color: #bbb; cursor: pointer; font-weight: bold; font-size: 0.9rem;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .tool-btn:hover { background: var(--accent-color); color: white; }
-        .tool-btn:active { transform: scale(0.95); }
 
+        .search-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .search-item:hover { background: #f0f0f0; }
+        .search-path { font-size: 10px; color: var(--primary); text-transform: uppercase; margin-bottom: 3px; }
+        .search-title { font-weight: bold; font-size: 14px; }
+
+        /* --- Layout --- */
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Sidebar --- */
+        #sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            z-index: 50;
+            transform: translateX(-100%);
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        #sidebar.open { transform: translateX(0); }
+
+        #sidebar-header {
+            padding: 15px;
+            background: #fafafa;
+            border-bottom: 1px solid var(--border);
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        #nav-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .nav-item:hover { background-color: #f9f9f9; }
+        .nav-item.active { background-color: #e8eaf6; color: var(--primary); font-weight: 500; }
+        .folder-icon { margin-right: 8px; color: #888; }
+        .chevron { font-size: 10px; transition: transform 0.2s; }
+        .chevron.rotated { transform: rotate(90deg); }
+
+        .sub-list {
+            display: none;
+            background-color: #fafafa;
+            padding-left: 15px;
+        }
+        .sub-list.visible { display: block; }
+
+        /* --- Editor --- */
+        #editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #breadcrumbs {
+            padding: 10px 15px;
+            font-size: 12px;
+            color: #666;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+
+        #editor-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            outline: none;
+            font-size: 16px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding-bottom: 80px; /* Space for toolbar */
+        }
+
+        #editor-content img { max-width: 100%; border-radius: 8px; margin: 10px 0; }
+        #editor-content blockquote { border-left: 4px solid var(--primary); margin: 10px 0; padding-left: 10px; color: #555; background: #f9f9f9; padding: 10px; }
+        #editor-content iframe { width: 100%; aspect-ratio: 16/9; border: none; border-radius: 8px; margin: 10px 0; }
+
+        /* --- Formatting Toolbar (Fixed) --- */
+        #toolbar-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 8px 12px;
+            display: flex;
+            gap: 5px;
+            z-index: 90;
+            width: 95%;
+            max-width: 500px; /* Fix 1.1: 50% width style on desktop */
+            transition: opacity 0.2s, bottom 0.2s;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border: 1px solid #eee;
+        }
+
+        #toolbar-container.hidden { display: none; }
+
+        .tool-btn {
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #555;
+            font-size: 16px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+        }
+
+        .tool-btn:hover { background-color: #f0f0f0; }
+        .tool-btn.active { background-color: var(--primary); color: white; }
+
+        /* Modal for inputs */
+        #input-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        @media (min-width: 768px) {
+            #sidebar {
+                transform: translateX(0);
+                position: relative;
+                box-shadow: none;
+            }
+            #menu-toggle { display: none; }
+            #toolbar-container { width: 50%; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="backdrop" id="backdrop" onclick="closeSidebar()"></div>
+<div id="app-header">
+    <button id="menu-toggle">☰</button>
+    <div id="search-container">
+        <input type="text" id="global-search" placeholder="Search curriculum (e.g. Asthma, T.B.)">
+        <div id="search-results"></div>
+    </div>
+</div>
 
-    <aside id="sidebar">
-        <div class="sidebar-header">
-            <div class="app-logo">IM Curriculum</div>
-            <div id="editToggle" class="edit-toggle" onclick="toggleEditMode()">EDIT OFF</div>
-        </div>
-        
-        <div id="checklistRoot" class="checklist-scroll">
-            </div>
-    </aside>
-
-    <main>
-        <div class="mobile-header">
-            <button onclick="openSidebar()" style="background:none; border:none; color:white; font-size:1.5rem;">☰</button>
-            <div style="font-weight:700;">IM Notes</div>
-            <div style="width:24px"></div>
-        </div>
-
-        <div class="editor-container">
-            <div class="editor-scroll-area">
-                <div class="note-meta">
-                    <div id="breadcrumbs" class="breadcrumbs">Select a Topic</div>
-                    <input type="text" id="noteTitle" class="note-title-input" placeholder="No Topic Selected" readonly>
-                </div>
-                <div id="editor" class="editor-content" contenteditable="true" spellcheck="false"></div>
-            </div>
-        </div>
-    </main>
-
-    <div class="toolbar-wrapper">
-        <div class="toolbar-scroll">
-            <button class="tool-btn" onclick="execCmd('undo')" title="Undo">↺</button>
-            <button class="tool-btn" onclick="execCmd('redo')" title="Redo">↻</button>
-            <div style="width:1px; background:#444; margin:0 4px;"></div>
-            <button class="tool-btn" onclick="execCmd('bold')" title="Bold">B</button>
-            <button class="tool-btn" onclick="execCmd('italic')" title="Italic">I</button>
-            <button class="tool-btn" onclick="execCmd('underline')" title="Underline">U</button>
-            <div style="width:1px; background:#444; margin:0 4px;"></div>
-            <button class="tool-btn" onclick="formatBlock('h2')" title="Header 2">H2</button>
-            <button class="tool-btn" onclick="formatBlock('h3')" title="Header 3">H3</button>
-            <button class="tool-btn" onclick="insertList('ul')" title="Bullet List">•</button>
-            <button class="tool-btn" onclick="insertList('ol')" title="Number List">1.</button>
-            <button class="tool-btn" onclick="formatBlock('blockquote')" title="Quote">❞</button>
-            <div style="width:1px; background:#444; margin:0 4px;"></div>
-            <button class="tool-btn" onclick="addLink()" title="Link">🔗</button>
-            <button class="tool-btn" onclick="addImage()" title="Image">🖼️</button>
-            <button class="tool-btn" onclick="addVideo()" title="YouTube">📺</button>
-        </div>
+<div id="main-container">
+    <div id="sidebar">
+        <div id="sidebar-header">Medical Curriculum (Year 3)</div>
+        <ul id="nav-list">
+            </ul>
     </div>
 
-    <script>
-        // --- 1. CONFIG & STATE ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBd9E9VkE7bllIN13NYGz801F4Jue_VzVk",
-            authDomain: "im-helper-d3a4a.firebaseapp.com",
-            projectId: "im-helper-d3a4a",
-            storageBucket: "im-helper-d3a4a.firebasestorage.app",
-            messagingSenderId: "772636018512",
-            appId: "1:772636018512:web:80d03d582a3384746f4e55"
-        };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+    <div id="editor-area">
+        <div id="breadcrumbs">Select a topic...</div>
+        <div id="editor-content" contenteditable="true" spellcheck="false">
+            <h2>Welcome Back</h2>
+            <p>Select a topic from the sidebar to begin studying.</p>
+            <p style="color: #888;">Use the search bar to find specific diseases or treatments.</p>
+        </div>
+    </div>
+</div>
 
-        let currentNoteId = null;
-        let isEditMode = false;
-        // Persistence: keep track of open categories
-        let openState = { categories: new Set(), subgroups: new Set() };
+<div id="toolbar-container">
+    <button class="tool-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+    <button class="tool-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+    <button class="tool-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+    <button class="tool-btn" data-cmd="insertUnorderedList" title="Bullet List">•</button>
+    <button class="tool-btn" data-cmd="formatBlock" data-val="H3" title="Header">H</button>
+    <button class="tool-btn" data-cmd="image" title="Insert Image">🖼️</button>
+    <button class="tool-btn" data-cmd="youtube" title="Insert Video">▶️</button>
+    <button class="tool-btn" data-cmd="link" title="Link">🔗</button>
+</div>
 
-        // --- 2. DATA (PARSED FROM PDF) ---
-        // Structure: Category -> Subgroup -> Items
-        const curriculumData = {
-            "CVS (Cardiovascular)": {
-                "History & Exam": [
-                    {type: 'must', title: 'History: Chest pain, SOB, Orthopnoea, PND, Syncope, Palpitations'},
-                    {type: 'must', title: 'Exam: Clubbing, Splinter haemorrhages, Pulse, JVP, Apex beat, Murmurs'},
-                    {type: 'must', title: 'Exam: Signs of Heart Failure & Infective Endocarditis'}
-                ],
-                "Hypertension": [
-                    {type: 'must', title: 'Definitions, Target organ damage, Complications'},
-                    {type: 'good', title: 'Secondary HTN Causes & Diagnosis'},
-                    {type: 'good', title: 'Antihypertensive Drugs Classes'}
-                ],
-                "Ischaemic Heart Disease": [
-                    {type: 'must', title: 'ACS: Presentations (STEMI/NSTEMI/UA)'},
-                    {type: 'must', title: 'ACS Investigations & Management Outline'},
-                    {type: 'good', title: 'Stress Test, Angiography, Echo Indications'}
-                ],
-                "Arrhythmias & ECG": [
-                    {type: 'must', title: 'Basic ECG: AF, MI, Hyperkalaemia'},
-                    {type: 'good', title: 'ECG: LVH, SVT, VT, VF'}
-                ],
-                "Valvular & Structural": [
-                    {type: 'must', title: 'Rheumatic Heart Disease: Aetiology, Jones Criteria, Prevention'},
-                    {type: 'must', title: 'Valve Lesions: MS, MR, AS, AR, TR, VSD'},
-                    {type: 'must', title: 'Infective Endocarditis: Dukes Criteria, Management'}
-                ],
-                "Heart Failure": [
-                    {type: 'must', title: 'Acute vs Chronic HF, HFpEF, Diagnosis, Management'},
-                    {type: 'good', title: 'Detailed Drug Treatment (BB, ACEi, MRA, SGLT2i)'},
-                    {type: 'good', title: 'Cor-pulmonale & Pulmonary HTN'},
-                    {type: 'good', title: 'Cardiac Tamponade & Resuscitation'}
-                ]
-            },
-            "Respiratory": {
-                "Airway Diseases": [
-                    {type: 'must', title: 'Asthma: Diagnosis, Ddx, Acute Exacerbation Approach'},
-                    {type: 'good', title: 'Asthma: Severity Assessment, Devices, Chronic Control'},
-                    {type: 'must', title: 'COPD: Diagnosis, Signs, Smoking Hx, CXR'},
-                    {type: 'good', title: 'COPD: MMRC, Acute/Chronic Management'}
-                ],
-                "Parenchymal Diseases": [
-                    {type: 'must', title: 'ILD: Diagnosis, Findings, Causes'},
-                    {type: 'good', title: 'ILD: CXR Patterns'},
-                    {type: 'must', title: 'Bronchiectasis: Diagnosis, Findings, Causes'},
-                    {type: 'good', title: 'Bronchiectasis: Non-pharm Management'}
-                ],
-                "Infections": [
-                    {type: 'must', title: 'Pneumonia: Types, CURB-65, Complications'},
-                    {type: 'good', title: 'Pneumonia: Specific Treatments'}
-                ],
-                "Pleural Diseases": [
-                    {type: 'must', title: 'Pleural Effusion: Transudate vs Exudate, Findings'},
-                    {type: 'good', title: 'Lights Criteria, Aspiration Technique'},
-                    {type: 'must', title: 'Pneumothorax: Types, Causes, CXR'},
-                    {type: 'good', title: 'Chest Tube Management'}
-                ],
-                "Investigations": [
-                    {type: 'must', title: 'ABG Analysis: Acidosis/Alkalosis, Resp Failure'},
-                    {type: 'must', title: 'Spirometry: Obstructive vs Restrictive'}
-                ]
-            },
-            "Renal": {
-                "Assessment": [
-                    {type: 'must', title: 'History, Urinalysis, Renal Function Tests'},
-                    {type: 'good', title: 'Renal Biopsy Indications'}
-                ],
-                "Glomerular Diseases": [
-                    {type: 'must', title: 'Nephrotic vs Nephritic Syndrome'},
-                    {type: 'must', title: 'Primary Causes: Minimal Change, FSGS, Membranous, IgA'},
-                    {type: 'must', title: 'Secondary: SLE Nephritis'}
-                ],
-                "Kidney Injury": [
-                    {type: 'must', title: 'AKI: Prerenal, Intrinsic, Postrenal, Indices'},
-                    {type: 'good', title: 'AKI: Drug Causes, Dialysis Timing'},
-                    {type: 'must', title: 'CKD: Staging, Pathophysiology, Investigations'},
-                    {type: 'good', title: 'CKD: Anaemia, Bone Disease, RRT Prep'}
-                ],
-                "Others": [
-                    {type: 'must', title: 'Diabetic Nephropathy: Microalbuminuria, ACEi/ARB'},
-                    {type: 'must', title: 'ADPKD: Genetics, Extra-renal Manifestations'},
-                    {type: 'must', title: 'UTI: Pathogenesis, Investigations'},
-                    {type: 'must', title: 'Fluid/Electrolytes: Na+, K+, Acid-Base Balance'},
-                    {type: 'must', title: 'RRT: Haemodialysis, CAPD, Transplant'}
-                ]
-            },
-            "Infectious Disease": {
-                "General": [
-                    {type: 'must', title: 'PUO: Definition, Causes, Approach'},
-                    {type: 'must', title: 'Septicaemia: Sepsis 6, Pathophysiology'}
-                ],
-                "Vector Borne": [
-                    {type: 'must', title: 'Malaria: Plasmodium Types, Complications'},
-                    {type: 'must', title: 'Leptospirosis: Risk factors, 4 Syndromes'},
-                    {type: 'must', title: 'Dengue: Phases, Warning Signs, DHF/DSS'}
-                ],
-                "Specific Infections": [
-                    {type: 'must', title: 'Melioidosis: Risk factors, Diagnosis'},
-                    {type: 'must', title: 'HIV: Transmission, Stages (Seroconversion to AIDS)'},
-                    {type: 'good', title: 'HIV Opportunistic Infections'}
-                ]
-            },
-            "GIT & Liver": {
-                "Hepatology": [
-                    {type: 'must', title: 'Liver Function Tests Interpretation'},
-                    {type: 'must', title: 'Cirrhosis: Causes, Stigmata, Complications'},
-                    {type: 'must', title: 'Portal HTN: Ascites, Varices, Encephalopathy'},
-                    {type: 'must', title: 'Viral Hepatitis A, B, C'},
-                    {type: 'good', title: 'Alcoholic Hepatitis, Wilsons, Haemochromatosis'}
-                ],
-                "Gastroenterology": [
-                    {type: 'must', title: 'Acute Diarrhoea & Dehydration'},
-                    {type: 'good', title: 'Chronic Diarrhoea & Malabsorption'},
-                    {type: 'good', title: 'IBD: Crohns vs Ulcerative Colitis'}
-                ]
-            },
-            "Neurology": {
-                "Basics": [
-                    {type: 'must', title: 'Neuroanatomy & Examination'},
-                    {type: 'must', title: 'Glasgow Coma Scale (GCS)'}
-                ],
-                "Stroke": [
-                    {type: 'must', title: 'Classification (Bamford), Risk Factors'},
-                    {type: 'must', title: 'Presentations (TACS, PACS, LACS, POCS)'},
-                    {type: 'must', title: 'Management: Thrombolysis, BP Control'},
-                    {type: 'good', title: 'Brainstem Syndromes, Young Stroke'}
-                ],
-                "Disorders": [
-                    {type: 'must', title: 'Epilepsy: Classification, Seizure vs Syncope'},
-                    {type: 'must', title: 'Parkinsons: TRAP, Management Outline'},
-                    {type: 'must', title: 'Myasthenia Gravis: Fatigability, Crisis'},
-                    {type: 'must', title: 'GBS: AIDP/AMAN, CSF Findings'},
-                    {type: 'must', title: 'CNS Infections: Meningitis types, LP'},
-                    {type: 'must', title: 'Multiple Sclerosis & Degenerative Diseases'}
-                ]
-            },
-            "Endocrinology": {
-                "Diabetes": [
-                    {type: 'must', title: 'Diagnosis, Type 1 vs 2, Monitoring'},
-                    {type: 'must', title: 'Acute Complications: DKA, HHS, Hypo'},
-                    {type: 'must', title: 'Chronic Complications & Management'}
-                ],
-                "Glands": [
-                    {type: 'must', title: 'Pituitary: Acromegaly, Cushings, Prolactinoma'},
-                    {type: 'must', title: 'Adrenal: Primary Aldosteronism, Pheochromocytoma'},
-                    {type: 'must', title: 'Thyroid: Hyperthyroidism (Graves), Hypothyroidism'},
-                    {type: 'good', title: 'Thyroid Storm, Nodule Approach'}
-                ]
-            },
-            "Haematology": {
-                "RBC & Coagulation": [
-                    {type: 'must', title: 'Thalassaemia & Haemoglobin Analysis'},
-                    {type: 'must', title: 'Haemophilia & DIC'},
-                    {type: 'must', title: 'TTP (Emergency Signs)'},
-                    {type: 'must', title: 'Aplastic Anaemia'}
-                ],
-                "Malignancies": [
-                    {type: 'must', title: 'Acute Leukaemias & APML'},
-                    {type: 'must', title: 'Lymphoma (Hodgkins/Non-Hodgkins)'},
-                    {type: 'must', title: 'Multiple Myeloma (CRAB)'}
-                ]
-            },
-            "Rheumatology": {
-                "Joints": [
-                    {type: 'must', title: 'Approach: Mono vs Poly, Inflammatory vs Mech'},
-                    {type: 'must', title: 'Rheumatoid Arthritis: Criteria, Features'},
-                    {type: 'must', title: 'Osteoarthritis: X-ray findings, Management'},
-                    {type: 'must', title: 'Gout & Septic Arthritis'}
-                ],
-                "Connective Tissue": [
-                    {type: 'must', title: 'SLE: Criteria, Malar Rash, ANA'},
-                    {type: 'must', title: 'Systemic Sclerosis & Spondyloarthropathies'}
-                ]
-            }
-        };
+<div id="input-modal">
+    <div class="modal-content">
+        <h3 id="modal-title">Enter Value</h3>
+        <input type="text" id="modal-input" class="modal-input">
+        <div class="modal-actions">
+            <button onclick="closeModal()">Cancel</button>
+            <button onclick="submitModal()" style="background:var(--primary); color:white; border:none; padding:8px 16px; border-radius:4px;">OK</button>
+        </div>
+    </div>
+</div>
 
-        // --- 3. INIT & RENDER ---
-        window.addEventListener('DOMContentLoaded', () => {
-            renderSidebar();
+<script>
+// --- Data Structure (Parsed from PDF) ---
+// Structure: Group -> Subgroup -> Topic -> ID/Content
+const medicalData = {
+    "1. Cardiovascular": {
+        "History & Exam": {
+            [cite_start]"History Taking": { id: "cv-hx", content: "<b>History of CV diseases:</b><br>Grading effort intolerance, shortness of breath, orthopnoea, PND, chest pain, palpitations, syncopal attacks, pedal oedema.<br><b>Risk Factors:</b> IVDU, past history of rheumatic fever, CAD risk factors, IE risk factors[cite: 2]." },
+            [cite_start]"Physical Exam": { id: "cv-pe", content: "<b>Hands:</b> clubbing, cyanosis, stigmata of IE, pulse, BP.<br><b>Neck:</b> JVP.<br><b>Face:</b> pallor, jaundice, corneal arcus, oral hygiene.<br><b>Precordium:</b> bulging, pulsations, apex beat, parasternal heave, thrills, palpable heart sounds.<br><b>Auscultation:</b> heart sounds, murmurs, pericardial rub, bi-basal crepitations. [cite: 2]" }
+        },
+        "Hypertension": {
+            [cite_start]"Basics": { id: "htn-basic", content: "<b>Definitions:</b> Target organ changes, Investigations, Complications.<br><b>Secondary HTN:</b> Causes and diagnosis. [cite: 2]" },
+            [cite_start]"Management": { id: "htn-mgmt", content: "Antihypertensive drugs. [cite: 2]" }
+        },
+        "Ischaemic Heart Disease": {
+            "Diagnosis": { id: "ihd-dx", content: "Presentations of CAD. [cite_start]Acute coronary syndrome.<br><b>Investigations:</b> Stress test, coronary angiography, echocardiography. [cite: 2]" },
+            [cite_start]"Management": { id: "ihd-mx", content: "Outline of management. [cite: 2]" }
+        },
+        "ECG": {
+            [cite_start]"Basic Diagnosis": { id: "ecg-basic", content: "Atrial fibrillation, Myocardial infarction, Hyperkalaemia. [cite: 2]" },
+            [cite_start]"Advanced": { id: "ecg-adv", content: "LV Hypertrophy, hypokalaemia, SVT, VT, VF. [cite: 2] <br><br>" }
+        },
+        "Heart Failure": {
+            "Types": { id: "hf-types", content: "Acute vs Chronic. HF with preserved ejection fraction (HFpEF). [cite_start]Congestive Heart Failure causes. [cite: 2]" },
+            [cite_start]"Management": { id: "hf-mx", content: "Drug treatment of heart failure. [cite: 2]" }
+        },
+        "Valvular & Structural": {
+            [cite_start]"Rheumatic Heart Disease": { id: "rhd", content: "Aetiology, rheumatic fever presentations, valve lesions (chronic), complications, secondary prevention. [cite: 2]" },
+            [cite_start]"Valve Lesions": { id: "valves", content: "MR, MS, AR, AS, TR, VSD. [cite: 2]" },
+            [cite_start]"Infective Endocarditis": { id: "ie", content: "Pathogens, clinical manifestations, complications, diagnosis, outline of management, Duke's criteria. [cite: 2]" }
+        },
+        "Emergencies": {
+            [cite_start]"Cardiac Tamponade": { id: "tamponade", content: "Mechanism and presentation. [cite: 2]" },
+            [cite_start]"Resuscitation": { id: "cpr", content: "Cardiac resuscitation: steps and technique. [cite: 2]" }
+        }
+    },
+    "2. Respiratory": {
+        "Bronchial Asthma": {
+            "Diagnosis": { id: "ba-dx", content: "How to diagnose BA. [cite_start]Differential diagnosis of BA. [cite: 4]" },
+            "Assessment": { id: "ba-assess", content: "Assessment of BA severity. Assessment of BA control. [cite_start]Approach to poor control BA. [cite: 4]" },
+            "Management": { id: "ba-mx", content: "Drug used in BA control. Devices (MDI/Aero-chamber). [cite_start]Approach to acute exacerbation. [cite: 4]" }
+        },
+        "COPD": {
+            "Diagnosis": { id: "copd-dx", content: "How to diagnose COPD. Physical findings. Quantify smoking history. Differential diagnosis. [cite_start]MMRC classification. [cite: 4]" },
+            "Management": { id: "copd-mx", content: "Approach to poor control. Drug used in acute attack. [cite_start]Drug used in control. [cite: 4]" },
+            [cite_start]"Imaging": { id: "copd-img", content: "Chest X-ray in COPD. [cite: 4]" }
+        },
+        "Interstitial Lung Disease": {
+            "Clinical": { id: "ild-clin", content: "How to diagnose ILD. Physical findings. Causes. [cite_start]Differentials. [cite: 6]" },
+            [cite_start]"Imaging": { id: "ild-img", content: "Chest X-ray in ILD. [cite: 6]" }
+        },
+        "Infections": {
+            "Pneumonia": { id: "pneu", content: "Types of pneumonia. CURB-65 score. Treatment for different types. Complications. [cite_start]CXR findings. [cite: 6]" },
+            "Bronchiectasis": { id: "bronch", content: "Diagnosis, physical findings, causes, differentials, CXR. [cite_start]Drugs used and non-pharm management. [cite: 6]" }
+        },
+        "Pleural Diseases": {
+            "Pleural Effusion": { id: "pleural-eff", content: "Types (transudate/exudate). Physical findings. CXR. Lights criteria. [cite_start]Pleural fluid aspiration. [cite: 6]" },
+            "Pneumothorax": { id: "pneumo", content: "Types, causes, CXR. [cite_start]Chest tube management. [cite: 6]" }
+        },
+        "Procedures & Invest.": {
+            "ABG": { id: "abg", content: "ABG vs VBG. Respiratory failure. [cite_start]Acidosis/Alkalosis. [cite: 6]" },
+            [cite_start]"Spirometry": { id: "spiro", content: "Obstructive vs Restrictive lung disease. [cite: 6]" },
+            "Other": { id: "resp-proc", content: "Chest tube/cook catheter. [cite_start]Bronchoscopy. [cite: 6]" }
+        }
+    },
+    "3. Renal System": {
+        "Assessment": {
+            [cite_start]"Clinical": { id: "ren-clin", content: "History, PE, Urine dipstick, Urinalysis, Renal function assessment. [cite: 8]" },
+            [cite_start]"Imaging": { id: "ren-img", content: "Diagnostic imaging. [cite: 8]" }
+        },
+        "Glomerular Diseases": {
+            [cite_start]"Syndromes": { id: "neph-synd", content: "Nephrotic vs Nephritic syndrome presentation. [cite: 8]" },
+            [cite_start]"Primary Causes": { id: "prim-glom", content: "Minimal change, Membranoproliferative GN, FGS, Membranous nephropathy, IgA Nephropathy, Post infectious GN. [cite: 8]" },
+            [cite_start]"Secondary": { id: "sec-glom", content: "SLE. [cite: 8]" },
+            [cite_start]"Biopsy": { id: "ren-bx", content: "Indications and Complications. [cite: 8]" }
+        },
+        "Kidney Injury/Failure": {
+            "AKI": { id: "aki", content: "Prerenal, intrinsic, obstructive. Indices (osmolality/electrolytes). Drug causes. [cite_start]Management (fluid, dialysis timing). [cite: 10]" },
+            "CKD": { id: "ckd", content: "Causes. Pathophysiology (anaemia, bone, CVS, lipids, HTN). Prep for RRT. [cite_start]Drug dosing. [cite: 10]" },
+            [cite_start]"Diabetic Nephropathy": { id: "dn", content: "Natural history, microalbuminuria, ACE/ARB use. [cite: 10]" }
+        },
+        "Genetic": {
+            "ADPKD": { id: "adpkd", content: "Genetics, presentation, extra renal manifestations. [cite_start]Management, counselling, transplant. [cite: 10]" },
+            [cite_start]"Other": { id: "alport", content: "Alport's syndrome. [cite: 10]" }
+        },
+        "UTI": {
+            "Infection": { id: "uti", content: "Pathogenesis, routes, clinical course. Acute/Chronic pyelonephritis. Asymptomatic bacteriuria. [cite_start]Recurrent UTI. [cite: 10]" }
+        },
+        "Fluids & Electrolytes": {
+            "Acid Base": { id: "acid-base", content: "Metabolic acidosis/alkalosis. RTA. Lactic acidosis. [cite_start]Anion gap. [cite: 10]" },
+            "Electrolytes": { id: "electrolytes", content: "Na+ (Hypo/Hyper). K+ (Hypo/Hyper). [cite_start]Diuretics complications. [cite: 10]" }
+        },
+        "RRT": {
+            "Therapy": { id: "rrt", content: "Haemodialysis vs CAPD vs Transplant (Pros/Cons). [cite_start]Access sites. [cite: 10]" }
+        }
+    },
+    "4. Infectious Disease": {
+        "General": {
+            "PUO": { id: "puo", content: "Definition, Causes (Infections, Malignancy, Connective Tissue, Drugs). History (travel, occupation). [cite_start]Investigations. [cite: 12]" },
+            "Sepsis": { id: "sepsis", content: "Definitions. Pathophysiology (cytokines, endothelial damage). Septic shock, multiorgan failure, DIC. [cite_start]Management (Source control, Supportive). [cite: 14]" }
+        },
+        "Tropical Infections": {
+            "Malaria": { id: "malaria", content: "Plasmodium spp. Vector. Life cycle. Severe malaria risks. Complications (cerebral, AKI, ARDS). [cite_start]Drugs (Chloroquine, Quinine side effects). [cite: 14]" },
+            "Dengue": { id: "dengue", content: "Vector, serotypes. Pathophysiology (fluid loss). 3 phases. Warning signs. Tourniquet test. Management (fluid monitoring). [cite_start]DHF/DSS. [cite: 14]" },
+            "Leptospirosis": { id: "lepto", content: "Risk conditions. 4 main clinical syndromes. [cite_start]Treatment. [cite: 14]" },
+            "Melioidosis": { id: "melio", content: "Inoculation/inhalation. Abscesses (lung, liver, spleen). [cite_start]Treatment choice/duration. [cite: 14]" }
+        },
+        "Viral": {
+            "HIV": { id: "hiv", content: "Virology. Transmission. Stages (Seroconversion, PGL, AIDS). Opportunistic infections (TB, PCP, Candida, CMV, Toxo). [cite_start]Diagnosis (Ab, p24, PCR). [cite: 14]" }
+        }
+    },
+    "5. GIT & Liver": {
+        "Hepatology": {
+            "Assessment": { id: "liv-assess", content: "Jaundice, distension. Stigmata of CLD. [cite_start]LFTs. [cite: 16]" },
+            "Cirrhosis": { id: "cirrhosis", content: "Causes, Pathophysiology, Complications. Portal HTN. Ascites (exudate vs transudate). [cite_start]Encephalopathy. [cite: 16]" },
+            "Specific Diseases": { id: "liv-spec", content: "Alcoholic hepatitis. Alpha-1-antitrypsin. Primary biliary cirrhosis. Wilson's. Haemochromatosis. [cite_start]Viral Hepatitis (A, B, C). [cite: 16]" },
+            [cite_start]"Failure": { id: "alf", content: "Acute Liver Failure: Causes, Features. [cite: 16]" }
+        },
+        "Gastroenterology": {
+            [cite_start]"Symptoms": { id: "git-symp", content: "Abdominal pain, Diarrhoea (Acute/Chronic), Constipation. [cite: 16]" },
+            "Conditions": { id: "git-cond", content: "Malabsorption. [cite_start]Inflammatory Bowel Disease. [cite: 16]" }
+        }
+    },
+    "6. Neurology": {
+        "Stroke": {
+            "Basics": { id: "stroke-base", content: "Classification (BAMFORD). Risk factors. [cite_start]Circle of Willis. [cite: 20] <br><br>" },
+            "Presentation": { id: "stroke-pres", content: "TACS 5 deficits. Lacunar. Brainstem (crossed paralysis). Visual field defects. [cite_start]Gaze palsy. [cite: 20]" },
+            "Management": { id: "stroke-mx", content: "Thrombolysis (indications/contraindications/window). BP management. [cite_start]Secondary prevention. [cite: 20]" }
+        },
+        "Movement Disorders": {
+            "Parkinson's": { id: "pd", content: "Cardinal features (TRAP). Asymmetry. Diagnosis. Drugs (L-dopa, agonists). [cite_start]Parkinson Plus. [cite: 20]" }
+        },
+        "Seizures": {
+            "Epilepsy": { id: "epilepsy", content: "Focal vs Generalised. Seizure vs Syncope. Status epilepticus. [cite_start]Antiepileptic drugs. [cite: 20]" }
+        },
+        "Neuromuscular": {
+            "Myasthenia Gravis": { id: "mg", content: "Fatigability. Proximal myopathy. Myasthenic crisis. Investigations (Ab, nerve stimulation). [cite_start]Treatment. [cite: 20]" },
+            "GBS": { id: "gbs", content: "AIDP, AMAN. Ascending paralysis. CSF (albuminocytologic dissociation). [cite_start]IVIG/Plasmapheresis. [cite: 20]" }
+        },
+        "CNS Infections": {
+            "Meningitis": { id: "meningitis", content: "Bacterial, Viral, TB. Kernig's/Brudzinski's. LP indications/contraindications. [cite_start]CSF findings. [cite: 22, 27]" }
+        },
+        "Others": {
+            [cite_start]"MS": { id: "ms", content: "Multiple Sclerosis: Definition, presentation, MRI. [cite: 24, 29]" },
+            [cite_start]"Degenerative": { id: "neuro-degen", content: "ALS, Alzheimer's, Dementias. [cite: 30]" }
+        }
+    },
+    "7. Endocrinology": {
+        "Diabetes": {
+            "Diagnosis": { id: "dm-dx", content: "FBS, HbA1c, OGTT. [cite_start]Type 1 vs Type 2. [cite: 35]" },
+            "Acute Complications": { id: "dm-acute", content: "DKA, HHS (Pathophysiology). [cite_start]Hypoglycemia. [cite: 39]" },
+            "Chronic Complications": { id: "dm-chronic", content: "Microvascular (Eye, Kidney, Nerve). Macrovascular. [cite_start]Autonomic neuropathy. [cite: 42]" },
+            "Management": { id: "dm-mx", content: "Targets. Lifestyle. Oral agents (groups/mechanism). [cite_start]Insulin types. [cite: 45]" }
+        },
+        "Pituitary": {
+            [cite_start]"Acromegaly": { id: "acro", content: "Features, Screening (IGF-1), Confirmatory (OGTT GH suppression). [cite: 51]" },
+            "Prolactinoma": { id: "prolac", content: "Features, Screening, Differentials. [cite_start]Management (Dopamine agonists). [cite: 58]" },
+            [cite_start]"Cushing's": { id: "cush", content: "Screening, Confirmatory, Localization. [cite: 57]" }
+        },
+        "Adrenal": {
+            "Aldosteronism": { id: "aldo", content: "Primary Aldosteronism: HTN + Hypokalemia. [cite_start]Screening (ARR). [cite: 78]" },
+            [cite_start]"Pheochromocytoma": { id: "pheo", content: "Clinical features, Lab investigatons, Peri-operative management. [cite: 85]" },
+            [cite_start]"Hypoadrenalism": { id: "addison", content: "Causes, Features, Bio investigations. [cite: 104]" }
+        },
+        "Thyroid": {
+            "Hyperthyroidism": { id: "hyperthyroid", content: "Grave's (Antibodies), Toxic adenoma. Thyroid Storm. [cite_start]Anti-thyroid drugs. [cite: 91]" },
+            "Hypothyroidism": { id: "hypothyroid", content: "Hashimoto's. [cite_start]TFT interpretation. [cite: 96]" },
+            "Nodule": { id: "thy-nodule", content: "Approach to thyroid nodule. [cite_start]Malignancy features. [cite: 114]" }
+        }
+    },
+    "8. Haematology": {
+        "RBC Disorders": {
+            "Thalassaemia": { id: "thal", content: "Hb analysis vs DNA. Iron overload complications. [cite_start]Chelation. [cite: 119]" },
+            "Aplastic Anaemia": { id: "aa", content: "Severe vs Very severe. Diagnosis. [cite_start]Treatment. [cite: 161]" }
+        },
+        "Coagulation": {
+            "Haemophilia": { id: "haemo", content: "Types/Severity. Factor replacement calculation. [cite_start]Inhibitors. [cite: 124]" },
+            "DIC": { id: "dic", content: "Causes. [cite_start]Management. [cite: 129]" },
+            "TTP": { id: "ttp", content: "EMERGENCY. Pentad. Pathophysiology. Diff from HUS/DIC. [cite_start]Management (Plasma exchange). [cite: 135]" }
+        },
+        "Malignancy": {
+            "Acute Leukaemias": { id: "al", content: "Diagnosis, Prognosis. [cite_start]APML (Emergency - ATRA). [cite: 141]" },
+            "Lymphoma": { id: "lymph", content: "Hodgkin's vs Non-Hodgkin's. [cite_start]Ann Arbor Staging. [cite: 149]" },
+            "Myeloma": { id: "mm", content: "Plasma cell neoplasms. [cite_start]Symptoms (CRAB). [cite: 154]" },
+            [cite_start]"MPN": { id: "mpn", content: "CML, ET, PV, PMF. [cite: 169]" }
+        }
+    },
+    "9. Rheumatology": {
+        "Approach": {
+            "Arthritis": { id: "arth-app", content: "Onset, Number of joints, Symmetry, Stiffness. [cite_start]Investigations (Autoantibodies, Aspiration). [cite: 171]" }
+        },
+        "Conditions": {
+            "RA": { id: "ra", content: "Symmetrical polyarthritis. Pathophysiology. [cite_start]NSAIDs, DMARDs, Biologics. [cite: 185]" },
+            "OA": { id: "oa", content: "Cartilage loss. Subchondral sclerosis. Heberden's/Bouchard's nodes. [cite_start]Management. [cite: 190]" },
+            "Gout": { id: "gout", content: "Urate crystals. Triggers. Acute vs Chronic. [cite_start]Pseudogout (CPPD). [cite: 190]" },
+            "Spondyloarthropathies": { id: "spondy", content: "Ankylosing Spondylitis, Psoriatic, Reactive. HLA-B27. [cite_start]Enthesitis. [cite: 190]" },
+            "SLE": { id: "sle", content: "ACR/SLICC criteria. Antibodies (ANA, dsDNA). Flares. [cite_start]Pregnancy. [cite: 190]" },
+            "Septic Arthritis": { id: "sept-arth", content: "Risk factors. Aspiration urgency. [cite_start]Antibiotics. [cite: 190]" }
+        }
+    }
+};
+
+// --- App State ---
+let currentTopicId = null;
+let sidebarOpen = false;
+let currentModalAction = null;
+
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    renderSidebar();
+    
+    // Listeners
+    document.getElementById('menu-toggle').addEventListener('click', toggleSidebar);
+    
+    // Editor Listeners
+    const editor = document.getElementById('editor-content');
+    
+    // 1.7 & 1.3 Update Toolbar State on Click/Keyup, but ignore drag/scroll
+    editor.addEventListener('mouseup', updateToolbarState); 
+    editor.addEventListener('keyup', updateToolbarState);
+    
+    // 3. Edit Fix: Save on blur or input
+    editor.addEventListener('input', saveContent);
+    editor.addEventListener('blur', saveContent);
+
+    // Toolbar Button Listeners (Prevent Default to keep focus)
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        btn.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // 1.9 Fix: Prevents keyboard from closing
+            handleToolbarClick(btn);
         });
+    });
 
-        function renderSidebar() {
-            const root = document.getElementById('checklistRoot');
-            // Don't clear innerHTML if we want to preserve some state, but 
-            // simpler here to rebuild and apply "open" classes.
-            root.innerHTML = '';
-
-            for (const [category, subgroups] of Object.entries(curriculumData)) {
-                // Category Header
-                const catGroup = document.createElement('div');
-                catGroup.className = 'category-group';
-                
-                const catHeader = document.createElement('div');
-                catHeader.className = `category-header ${openState.categories.has(category) ? '' : 'collapsed'}`;
-                catHeader.innerHTML = `<span>${category}</span><span class="arrow">▼</span>`;
-                catHeader.onclick = () => {
-                    if (openState.categories.has(category)) openState.categories.delete(category);
-                    else openState.categories.add(category);
-                    renderSidebar();
-                };
-
-                const catContent = document.createElement('div');
-                catContent.style.display = openState.categories.has(category) ? 'block' : 'none';
-
-                // Subgroups
-                for (const [subgroup, items] of Object.entries(subgroups)) {
-                    const subId = `${category}-${subgroup}`;
-                    
-                    const subHeader = document.createElement('div');
-                    subHeader.className = `subgroup-header ${openState.subgroups.has(subId) ? 'open' : ''}`;
-                    subHeader.innerText = subgroup;
-                    subHeader.onclick = () => {
-                        if (openState.subgroups.has(subId)) openState.subgroups.delete(subId);
-                        else openState.subgroups.add(subId);
-                        renderSidebar();
-                    };
-
-                    const subList = document.createElement('div');
-                    subList.className = `topic-list ${openState.subgroups.has(subId) ? '' : 'hidden'}`;
-
-                    // Items
-                    items.forEach(item => {
-                        const id = sanitizeId(category + subgroup + item.title);
-                        const row = document.createElement('div');
-                        row.className = `topic-item ${currentNoteId === id ? 'active' : ''}`;
-                        row.onclick = () => loadNote(category, subgroup, item, id);
-                        row.innerHTML = `<div class="indicator ${item.type}"></div><div>${item.title}</div>`;
-                        subList.appendChild(row);
-                    });
-
-                    catContent.appendChild(subHeader);
-                    catContent.appendChild(subList);
-                }
-
-                catGroup.appendChild(catHeader);
-                catGroup.appendChild(catContent);
-                root.appendChild(catGroup);
+    // 1.8 Fix: Visual Viewport for Keyboard
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+            const toolbar = document.getElementById('toolbar-container');
+            if(!toolbar.classList.contains('hidden')) {
+                // Stick to bottom of visual viewport
+                toolbar.style.bottom = (window.innerHeight - window.visualViewport.height + 20) + 'px';
             }
-        }
+        });
+    }
+    
+    // Search Listener
+    document.getElementById('global-search').addEventListener('input', handleSearch);
+});
 
-        function sanitizeId(str) {
-            return str.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-        }
+// --- Logic ---
 
-        // --- 4. NOTE LOGIC ---
-        async function loadNote(cat, sub, item, id) {
-            currentNoteId = id;
+function renderSidebar() {
+    const list = document.getElementById('nav-list');
+    list.innerHTML = '';
+    
+    // Recursive function to handle deep nesting
+    function buildTree(data, parentElement, path = []) {
+        for (const key in data) {
+            const item = data[key];
+            const isTopic = item.hasOwnProperty('id') && item.hasOwnProperty('content');
             
-            // Re-render to show active state
-            renderSidebar();
-
-            // Mobile: Close sidebar
-            if (window.innerWidth <= 900) closeSidebar();
-
-            document.getElementById('breadcrumbs').innerText = `${cat} > ${sub}`;
-            document.getElementById('noteTitle').value = item.title;
-            document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
-
-            try {
-                const doc = await db.collection('notes').doc(id).get();
-                if (doc.exists) {
-                    document.getElementById('editor').innerHTML = doc.data().content;
-                } else {
-                    document.getElementById('editor').innerHTML = '';
-                }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // Autosave
-        let saveTimeout;
-        document.getElementById('editor').addEventListener('input', () => {
-            clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(saveNote, 1000);
-        });
-
-        async function saveNote() {
-            if (!currentNoteId) return;
-            const content = document.getElementById('editor').innerHTML;
-            await db.collection('notes').doc(currentNoteId).set({
-                content: content,
-                lastUpdated: new Date()
-            }, { merge: true });
-        }
-
-        // --- 5. EDITING TOOLS ---
-        function execCmd(cmd) { 
-            document.execCommand(cmd, false, null); 
-            document.getElementById('editor').focus();
-        }
-        function formatBlock(tag) { 
-            document.execCommand('formatBlock', false, `<${tag}>`);
-            document.getElementById('editor').focus();
-        }
-        function insertList(type) {
-            document.execCommand(type === 'ul' ? 'insertUnorderedList' : 'insertOrderedList');
-            document.getElementById('editor').focus();
-        }
-
-        function addLink() {
-            const url = prompt("Enter URL:");
-            if (url) document.execCommand('createLink', false, url);
-        }
-
-        function addImage() {
-            const url = prompt("Enter Image URL:");
-            if (url) {
-                // Insert HTML directly to ensure style classes if needed
-                const html = `<img src="${url}" />`;
-                document.execCommand('insertHTML', false, html);
-            }
-        }
-
-        function addVideo() {
-            const url = prompt("Enter YouTube URL:");
-            if (url) {
-                let videoId = url.split('v=')[1];
-                const ampersandPosition = videoId ? videoId.indexOf('&') : -1;
-                if (ampersandPosition !== -1) videoId = videoId.substring(0, ampersandPosition);
+            const li = document.createElement('li');
+            
+            if (isTopic) {
+                // It's a leaf node (Topic)
+                li.className = 'nav-item';
+                li.innerHTML = `<span>${key}</span>`;
+                li.onclick = () => loadTopic(item.id, item.content, [...path, key]);
+                parentElement.appendChild(li);
+            } else {
+                // It's a Folder
+                const header = document.createElement('div');
+                header.className = 'nav-item';
+                header.innerHTML = `
+                    <span style="font-weight:600">${key}</span>
+                    <span class="chevron">▶</span>
+                `;
                 
-                if (videoId) {
-                    const html = `<iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe><br>`;
-                    document.execCommand('insertHTML', false, html);
-                } else {
-                    alert("Invalid YouTube URL");
-                }
+                const subUl = document.createElement('ul');
+                subUl.className = 'sub-list';
+                
+                header.onclick = (e) => {
+                    e.stopPropagation();
+                    subUl.classList.toggle('visible');
+                    header.querySelector('.chevron').classList.toggle('rotated');
+                };
+                
+                li.appendChild(header);
+                li.appendChild(subUl);
+                parentElement.appendChild(li);
+                
+                buildTree(item, subUl, [...path, key]);
             }
         }
+    }
+    
+    buildTree(medicalData, list);
+}
 
-        // --- 6. UI HELPERS ---
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const btn = document.getElementById('editToggle');
-            btn.innerText = isEditMode ? 'EDIT ON' : 'EDIT OFF';
-            btn.classList.toggle('active');
-            // Logic to show/hide move buttons would go here if implemented
-        }
+function loadTopic(id, content, path) {
+    currentTopicId = id;
+    const editor = document.getElementById('editor-content');
+    const breadcrumbs = document.getElementById('breadcrumbs');
+    
+    // Update Breadcrumbs
+    breadcrumbs.textContent = path.join(' > ');
+    
+    // Load Content
+    editor.innerHTML = content;
+    
+    // Close sidebar on mobile
+    if (window.innerWidth < 768) {
+        toggleSidebar();
+    }
+    
+    // Highlight active in sidebar (Simplified)
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+}
 
-        function openSidebar() {
-            document.getElementById('sidebar').classList.add('open');
-            document.getElementById('backdrop').classList.add('open');
+function saveContent() {
+    if(!currentTopicId) return;
+    const content = document.getElementById('editor-content').innerHTML;
+    
+    // Recursive update in JSON
+    function updateData(data) {
+        for (const key in data) {
+            if (data[key].id === currentTopicId) {
+                data[key].content = content;
+                return true;
+            } else if (!data[key].id) {
+                if (updateData(data[key])) return true;
+            }
         }
-        function closeSidebar() {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('backdrop').classList.remove('open');
-        }
+    }
+    updateData(medicalData);
+}
 
-    </script>
+function toggleSidebar() {
+    sidebarOpen = !sidebarOpen;
+    const sidebar = document.getElementById('sidebar');
+    const toolbar = document.getElementById('toolbar-container');
+    
+    if (sidebarOpen) {
+        sidebar.classList.add('open');
+        // 1.2 Fix: Hide toolbar when sidebar is open to prevent overlap
+        if(window.innerWidth < 768) toolbar.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('open');
+        toolbar.classList.remove('hidden');
+    }
+}
+
+// --- Editor Logic ---
+
+function handleToolbarClick(btn) {
+    const cmd = btn.dataset.cmd;
+    const val = btn.dataset.val || null;
+    
+    if (cmd === 'image' || cmd === 'link' || cmd === 'youtube') {
+        openModal(cmd);
+    } else {
+        document.execCommand(cmd, false, val);
+        updateToolbarState();
+    }
+}
+
+// 1.7 Fix: Visual feedback for buttons
+function updateToolbarState() {
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+        const cmd = btn.dataset.cmd;
+        // Check if command is active/supported
+        try {
+            if (document.queryCommandState(cmd)) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        } catch(e) {}
+    });
+}
+
+// --- Modal & Insert Logic ---
+
+function openModal(action) {
+    currentModalAction = action;
+    const modal = document.getElementById('input-modal');
+    const title = document.getElementById('modal-title');
+    const input = document.getElementById('modal-input');
+    
+    input.value = '';
+    modal.style.display = 'flex';
+    input.focus();
+    
+    if (action === 'image') title.textContent = "Enter Image URL";
+    if (action === 'link') title.textContent = "Enter Link URL";
+    if (action === 'youtube') title.textContent = "Enter YouTube URL";
+}
+
+function closeModal() {
+    document.getElementById('input-modal').style.display = 'none';
+    currentModalAction = null;
+}
+
+function submitModal() {
+    const val = document.getElementById('modal-input').value;
+    if (!val) { closeModal(); return; }
+    
+    const editor = document.getElementById('editor-content');
+    editor.focus(); // Restore focus
+    
+    if (currentModalAction === 'image') {
+        // 1.5 Fix: Error handling for images
+        const html = `<img src="${val}" onerror="this.style.display='none'; this.insertAdjacentHTML('afterend', '(Image failed to load)')" />`;
+        document.execCommand('insertHTML', false, html);
+    } 
+    else if (currentModalAction === 'link') {
+        // 1.6 Fix: Proper link insertion
+        document.execCommand('createLink', false, val);
+    } 
+    else if (currentModalAction === 'youtube') {
+        // 1.4 Fix: Robust YouTube Regex
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = val.match(regExp);
+        
+        if (match && match[2].length === 11) {
+            const videoId = match[2];
+            const iframe = `<iframe src="//www.youtube.com/embed/${videoId}" allowfullscreen></iframe>`;
+            document.execCommand('insertHTML', false, iframe);
+        } else {
+            alert("Invalid YouTube URL");
+        }
+    }
+    
+    closeModal();
+}
+
+// --- Search Feature (New) ---
+
+function handleSearch(e) {
+    const query = e.target.value.toLowerCase();
+    const resultsContainer = document.getElementById('search-results');
+    resultsContainer.innerHTML = '';
+    
+    if (query.length < 2) {
+        resultsContainer.style.display = 'none';
+        return;
+    }
+    
+    const results = [];
+    
+    // Recursive search
+    function searchRecursive(data, path) {
+        for (const key in data) {
+            const item = data[key];
+            if (item.id && item.content) {
+                // Check match
+                if (key.toLowerCase().includes(query) || item.content.toLowerCase().includes(query)) {
+                    results.push({
+                        title: key,
+                        path: path.join(' > '),
+                        id: item.id,
+                        content: item.content,
+                        fullPathArray: [...path, key]
+                    });
+                }
+            } else {
+                searchRecursive(item, [...path, key]);
+            }
+        }
+    }
+    
+    searchRecursive(medicalData, []);
+    
+    if (results.length > 0) {
+        resultsContainer.style.display = 'block';
+        results.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'search-item';
+            div.innerHTML = `
+                <div class="search-path">${res.path}</div>
+                <div class="search-title">${res.title}</div>
+            `;
+            div.onclick = () => {
+                loadTopic(res.id, res.content, res.fullPathArray);
+                resultsContainer.style.display = 'none';
+                document.getElementById('global-search').value = '';
+            };
+            resultsContainer.appendChild(div);
+        });
+    } else {
+        resultsContainer.style.display = 'block';
+        resultsContainer.innerHTML = '<div class="search-item">No results found</div>';
+    }
+}
+
+</script>
 </body>
 </html>
