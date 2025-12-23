@@ -3,16 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IM Obsidian V7</title>
+    <title>IM Obsidian V8 (Firebase)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics-compat.js"></script>
+
     <style>
         :root {
-            /* Theme Variables */
-            --bg-1: #1e1e1e;       /* Main Background */
-            --bg-2: #252526;       /* Sidebar/Toolbar */
-            --bg-3: #2d2d2d;       /* Hover/Active */
+            /* Obsidian-like Theme */
+            --bg-1: #1e1e1e;       
+            --bg-2: #252526;       
+            --bg-3: #2d2d2d;       
             --bg-search: #333;
             --text-main: #e0e0e0;
             --text-muted: #858585;
@@ -37,7 +41,7 @@
             overflow: hidden;
         }
 
-        /* --- 1. SIDEBAR --- */
+        /* --- SIDEBAR --- */
         #app-sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-2);
@@ -62,7 +66,6 @@
             background: var(--bg-2);
         }
 
-        /* Sidebar Actions */
         .sidebar-actions button {
             background: none; border: none; color: var(--text-muted);
             cursor: pointer; padding: 4px; border-radius: 4px;
@@ -70,7 +73,6 @@
         }
         .sidebar-actions button:hover { color: #fff; background: var(--bg-3); }
 
-        /* Search */
         .search-container { padding: 10px 16px; background: var(--bg-2); }
         .search-input {
             width: 100%; background-color: #181818; border: 1px solid #333;
@@ -78,10 +80,8 @@
         }
         .search-input:focus { border-color: var(--accent); }
 
-        /* Tree Area */
         .file-tree { flex: 1; overflow-y: auto; padding: 5px 0 20px 0; }
 
-        /* Tree Item */
         .tree-item {
             display: flex; align-items: center; padding: 5px 8px 5px 20px;
             cursor: pointer; font-size: 0.85rem; color: var(--text-muted);
@@ -90,8 +90,6 @@
         .tree-item:hover { background-color: var(--bg-3); color: var(--text-main); }
         .tree-item.active { background-color: rgba(127,109,242,0.1); color: #fff; border-left-color: var(--accent); }
 
-        /* Folder Specifics */
-        .folder-header { font-weight: 600; color: var(--text-main); padding-right: 4px; }
         .folder-content { display: none; margin-left: 12px; border-left: 1px solid #333; }
         .folder-content.show { display: block; }
         
@@ -101,10 +99,7 @@
         }
         .arrow.open { transform: rotate(90deg); }
 
-        /* Sidebar Hover Controls (Edit/Delete) */
-        .node-controls {
-            display: none; margin-left: auto; gap: 4px;
-        }
+        .node-controls { display: none; margin-left: auto; gap: 4px; }
         .tree-item:hover .node-controls { display: flex; }
         .ctrl-btn {
             width: 20px; height: 20px; border-radius: 3px; border: none; cursor: pointer;
@@ -114,58 +109,50 @@
         .ctrl-btn:hover { background: var(--accent); color: white; }
         .ctrl-btn.del:hover { background: var(--danger); }
 
-        /* Search Results View */
+        /* Search Results */
         .search-results { display: none; flex-direction: column; padding: 0; }
-        .search-result-item {
-            padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
-        }
+        .search-result-item { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
         .search-result-item:hover { background: var(--bg-3); }
         .result-path { font-size: 0.7rem; color: var(--accent); margin-bottom: 4px; }
         .result-title { font-weight: 600; font-size: 0.9rem; color: #fff; margin-bottom: 4px; }
         .result-snippet { font-size: 0.8rem; color: #aaa; font-style: italic; }
-        .highlight { background: rgba(255, 255, 0, 0.2); color: #fff; }
 
-        /* --- 2. MAIN AREA --- */
+        /* --- MAIN AREA --- */
         #app-main {
             flex: 1; display: flex; flex-direction: column;
             background-color: var(--bg-1); position: relative;
         }
 
-        /* Header */
         .main-header {
             height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
             padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg-1);
         }
         
-        /* Dropdown Menu */
+        /* Dropdown */
         .dropdown { position: relative; display: inline-block; }
         .dropdown-content {
             display: none; position: absolute; right: 0; top: 100%;
-            background-color: var(--bg-2); min-width: 160px;
+            background-color: var(--bg-2); min-width: 220px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 200;
             border: 1px solid var(--border); border-radius: 6px;
         }
         .dropdown-content button {
             color: var(--text-main); padding: 12px 16px; text-decoration: none;
             display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .dropdown-content button:hover { background-color: var(--bg-3); }
         .dropdown.show .dropdown-content { display: block; }
 
-        /* Toggle Button */
         .mode-toggle {
             background: var(--bg-2); border: 1px solid var(--border); color: var(--text-muted);
             padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-right: 10px;
         }
         .mode-toggle.active { color: var(--accent); border-color: var(--accent); background: rgba(127,109,242,0.1); }
 
-        /* --- 3. EDITOR & TOOLBAR --- */
-        
-        /* Formatting Toolbar (Obsidian Style) */
+        /* Editor Toolbar */
         .editor-toolbar {
-            display: none; /* Hidden in Read mode */
-            align-items: center; gap: 8px; padding: 10px 20px;
+            display: none; align-items: center; gap: 8px; padding: 10px 20px;
             background: var(--bg-1); border-bottom: 1px solid var(--border);
             overflow-x: auto; white-space: nowrap;
         }
@@ -178,30 +165,24 @@
         .fmt-btn:hover { background: var(--bg-3); color: #fff; }
         .fmt-btn.active { color: var(--accent); }
 
-        /* Editor Area */
         .editor-scroll { flex: 1; overflow-y: auto; padding: 0 20px 50px 20px; }
         .editor-container { max-width: 800px; margin: 0 auto; padding-top: 40px; }
 
         .breadcrumbs { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
-        
         .note-title-input {
             width: 100%; background: transparent; border: none; color: var(--text-main);
             font-size: 2.2rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 20px;
         }
 
-        .note-content {
-            font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh;
-        }
+        .note-content { font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh; }
         .note-content:empty:before { content: 'Start writing...'; color: #444; }
 
-        /* Markdown Styles */
         .note-content h1, .note-content h2, .note-content h3 { color: #fff; margin-top: 1.5em; }
         .note-content h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; color: var(--accent); }
         .note-content blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding-left: 1em; color: var(--text-muted); background: rgba(127,109,242,0.05); padding: 10px; border-radius: 0 4px 4px 0; }
         .note-content img { max-width: 100%; border-radius: 4px; border: 1px solid var(--border); }
         .note-content a { color: var(--accent); text-decoration: underline; }
 
-        /* Mobile */
         .mobile-hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
         
         @media (max-width: 768px) {
@@ -216,7 +197,7 @@
 
 <aside id="app-sidebar">
     <div class="sidebar-header">
-        <span>IM VAULT</span>
+        <span id="connection-status" style="color:#22c55e">● Firebase Connected</span>
         <div class="sidebar-actions">
             <button onclick="toggleAllFolders(false)" title="Collapse All">-</button>
         </div>
@@ -226,7 +207,9 @@
         <input type="text" class="search-input" placeholder="Search notes..." id="search-input">
     </div>
 
-    <div id="file-tree" class="file-tree"></div>
+    <div id="file-tree" class="file-tree">
+        <div style="padding:20px; text-align:center; color:#666">Loading database...</div>
+    </div>
 
     <div id="search-results-list" class="search-results file-tree"></div>
 </aside>
@@ -245,9 +228,9 @@
             <div class="dropdown">
                 <button class="icon-btn" onclick="toggleDropdown()" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">⋮</button>
                 <div id="settings-dropdown" class="dropdown-content">
+                    <button onclick="initializeWithPDFData()" style="color: #7f6df2; font-weight:bold;">Initialize/Reset DB with PDF Data</button>
                     <button onclick="exportData()">Export Data (JSON)</button>
-                    <button onclick="importData()">Import Data</button>
-                    <button onclick="alert('Help: Select a folder to create files inside. Use right-click or hover icons to edit.')">Help</button>
+                    <button onclick="importData()">Import JSON</button>
                 </div>
             </div>
         </div>
@@ -261,7 +244,6 @@
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
         <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
-        <button class="fmt-btn" onclick="fmt('formatBlock', 'blockquote')" title="Quote">Quote</button>
         <div style="width:1px; background:#444; height:20px;"></div>
         <button class="fmt-btn" onclick="insertLink()" title="Link">Link</button>
         <button class="fmt-btn" onclick="insertImage()" title="Image">Image</button>
@@ -279,59 +261,39 @@
 </section>
 
 <script>
-    // --- 1. INITIAL DATA (PDF Curriculum) ---
-    // Deep structure enabled
-    let vaultData = [
-        {
-            id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
-                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
-                    { id: '1-1-1', title: 'History Taking', type: 'folder', children: [
-                        { id: '1-1-1-a', title: 'Symptoms', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p><h2>Chest Pain</h2><p>SOCRATES method...</p>' },
-                        { id: '1-1-1-b', title: 'Risk Factors', type: 'file', content: '<ul><li>Hypertension</li><li>Diabetes</li><li>Smoking</li></ul>' }
-                    ]},
-                    { id: '1-1-2', title: 'Physical Exam', type: 'file', content: 'Hands, Pulse, JVP, Apex Beat...' }
-                ]},
-                { id: '1-2', title: 'Hypertension', type: 'file', content: 'Definitions, Secondary Causes (Renal, Endocrine)...' }
-            ]
-        },
-        {
-            id: '2', title: '2. Respiratory', type: 'folder', children: [
-                { id: '2-1', title: 'Asthma', type: 'folder', children: [
-                    { id: '2-1-1', title: 'Diagnosis', type: 'file', content: 'Spirometry reversibility...' },
-                    { id: '2-1-2', title: 'Management', type: 'file', content: 'Acute: O2, Nebs, Steroids. Chronic: Step-up therapy.' }
-                ]},
-                { id: '2-2', title: 'COPD', type: 'file', content: 'Smoking Hx, Irreversible obstruction...' }
-            ]
-        },
-        { id: '3', title: '3. Renal', type: 'folder', children: [
-            { id: '3-1', title: 'AKI', type: 'file', content: 'Prerenal, Intrinsic, Postrenal...' }
-        ]},
-        { id: '4', title: '4. Infectious Disease', type: 'folder', children: [
-            { id: '4-1', title: 'General', type: 'file', content: 'PUO, Sepsis 6...' },
-            { id: '4-2', title: 'Vector Borne', type: 'file', content: 'Dengue, Malaria...' }
-        ]},
-        { id: '5', title: '5. GIT & Liver', type: 'folder', children: [
-            { id: '5-1', title: 'Hepatology', type: 'file', content: 'Cirrhosis, Portal HTN...' }
-        ]},
-        { id: '6', title: '6. Neurology', type: 'folder', children: [
-            { id: '6-1', title: 'Stroke', type: 'file', content: 'Bamford Classification...' }
-        ]}
-    ];
+    // --- 1. FIREBASE SETUP ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBd9E9VkE7bllIN13NYGz801F4Jue_VzVk",
+        authDomain: "im-helper-d3a4a.firebaseapp.com",
+        projectId: "im-helper-d3a4a",
+        storageBucket: "im-helper-d3a4a.firebasestorage.app",
+        messagingSenderId: "772636018512",
+        appId: "1:772636018512:web:80d03d582a3384746f4e55",
+        measurementId: "G-JTPQPT45CY"
+    };
 
-    // --- 2. APP STATE ---
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const analytics = firebase.analytics();
+
+    // --- 2. STATE ---
+    let vaultData = []; // Will be loaded from Firestore
     let currentNoteId = null;
     let isEditMode = false;
+    let saveTimeout;
 
-    // --- 3. INIT ---
+    // --- 3. INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
-        renderTree(vaultData, document.getElementById('file-tree'));
-        
-        // Search
+        loadStructureFromDB();
+
+        // Listeners
         document.getElementById('search-input').addEventListener('input', handleSearch);
-        
-        // Autosave simulation
         document.getElementById('editor').addEventListener('input', () => {
-             if(currentNoteId) updateNoteContent(currentNoteId, document.getElementById('editor').innerHTML);
+             if(currentNoteId) {
+                 clearTimeout(saveTimeout);
+                 saveTimeout = setTimeout(() => saveNoteContent(currentNoteId), 1000);
+             }
         });
 
         // Click outside closes dropdown
@@ -345,20 +307,114 @@
         }
     });
 
-    // --- 4. TREE RENDERER (Recursive with Actions) ---
+    // --- 4. DATABASE FUNCTIONS ---
+    async function loadStructureFromDB() {
+        try {
+            const doc = await db.collection('config').doc('treeStructure').get();
+            if (doc.exists) {
+                vaultData = doc.data().tree;
+                renderTree(vaultData, document.getElementById('file-tree'));
+            } else {
+                // DB is empty
+                vaultData = [];
+                renderTree([], document.getElementById('file-tree'));
+                document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#888">Database Empty.<br><br>Click ⋮ > Initialize with PDF Data</div>';
+            }
+        } catch (error) {
+            console.error("Error loading tree:", error);
+            document.getElementById('connection-status').style.color = 'red';
+            document.getElementById('connection-status').innerText = '● Connection Failed';
+        }
+    }
+
+    async function saveStructureToDB() {
+        // Save the Sidebar Tree Structure
+        try {
+            await db.collection('config').doc('treeStructure').set({ tree: vaultData });
+            console.log("Tree saved.");
+        } catch(e) { console.error("Save failed", e); }
+    }
+
+    async function saveNoteContent(id) {
+        // Save the Content of a specific note
+        const content = document.getElementById('editor').innerHTML;
+        const title = document.getElementById('note-title').value;
+        
+        // Update local tree memory for search
+        const node = findNode(vaultData, id);
+        if(node) {
+            node.content = content; 
+            // Note: In a real large app, we wouldn't store content in tree memory, but fetch on demand.
+            // For search performance in this size, it's okay.
+        }
+
+        try {
+            await db.collection('notes').doc(id).set({
+                content: content,
+                title: title,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log("Note saved.");
+            // Also save structure in case title changed
+            saveStructureToDB();
+        } catch(e) { console.error("Note save failed", e); }
+    }
+
+    // --- 5. INITIAL DATA SEEDER (The PDF Data) ---
+    async function initializeWithPDFData() {
+        if(!confirm("This will OVERWRITE your existing sidebar structure. Continue?")) return;
+        
+        // The parsed PDF data
+        const initialData = [
+            { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
+                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
+                    { id: '1-1-1', title: 'History Taking', type: 'folder', children: [
+                        { id: '1-1-1-a', title: 'Symptoms', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p><h2>Chest Pain</h2><p>SOCRATES method...</p>' },
+                        { id: '1-1-1-b', title: 'Risk Factors', type: 'file', content: '<ul><li>Hypertension</li><li>Diabetes</li><li>Smoking</li></ul>' }
+                    ]},
+                    { id: '1-1-2', title: 'Physical Exam', type: 'file', content: 'Hands, Pulse, JVP, Apex Beat...' }
+                ]},
+                { id: '1-2', title: 'Hypertension', type: 'file', content: 'Definitions, Secondary Causes (Renal, Endocrine)...' }
+            ]},
+            { id: '2', title: '2. Respiratory', type: 'folder', children: [
+                { id: '2-1', title: 'Asthma', type: 'folder', children: [
+                    { id: '2-1-1', title: 'Diagnosis', type: 'file', content: 'Spirometry reversibility...' },
+                    { id: '2-1-2', title: 'Management', type: 'file', content: 'Acute: O2, Nebs, Steroids. Chronic: Step-up therapy.' }
+                ]},
+                { id: '2-2', title: 'COPD', type: 'file', content: 'Smoking Hx, Irreversible obstruction...' }
+            ]},
+            { id: '3', title: '3. Renal', type: 'folder', children: [
+                { id: '3-1', title: 'AKI', type: 'file', content: 'Prerenal, Intrinsic, Postrenal...' }
+            ]},
+            { id: '4', title: '4. Infectious Disease', type: 'folder', children: [
+                { id: '4-1', title: 'General', type: 'file', content: 'PUO, Sepsis 6...' },
+                { id: '4-2', title: 'Vector Borne', type: 'file', content: 'Dengue, Malaria...' }
+            ]},
+            { id: '5', title: '5. GIT & Liver', type: 'folder', children: [
+                { id: '5-1', title: 'Hepatology', type: 'file', content: 'Cirrhosis, Portal HTN...' }
+            ]},
+            { id: '6', title: '6. Neurology', type: 'folder', children: [
+                { id: '6-1', title: 'Stroke', type: 'file', content: 'Bamford Classification...' }
+            ]}
+        ];
+
+        vaultData = initialData;
+        await saveStructureToDB();
+        renderTree(vaultData, document.getElementById('file-tree'));
+        alert("Database initialized with PDF Curriculum!");
+    }
+
+    // --- 6. RENDERER ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
         nodes.forEach(node => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
-            // Indent content, not the div itself, for hover bar to span full width
             
-            // Icon
             const icon = node.type === 'folder' 
                 ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span> 📁` 
                 : `<span style="width:14px; display:inline-block"></span> 📄`;
 
-            // HTML Structure
             itemDiv.innerHTML = `
                 <div style="display:flex; align-items:center; flex:1; padding-left:${depth * 12}px">
                     ${icon} <span style="margin-left:6px; font-weight:${node.type==='folder'?'600':'400'}">${node.title}</span>
@@ -371,23 +427,20 @@
                 </div>
             `;
 
-            // Click Handler
             itemDiv.onclick = (e) => {
-                if (e.target.closest('.ctrl-btn')) return; // Ignore control clicks
+                if (e.target.closest('.ctrl-btn')) return; 
                 if (node.type === 'folder') {
                     node.isOpen = !node.isOpen;
+                    saveStructureToDB(); // Save open state preference
                     renderTree(vaultData, document.getElementById('file-tree'));
                 } else {
                     openNote(node);
                 }
             };
 
-            // Active Class
             if (currentNoteId === node.id) itemDiv.classList.add('active');
-
             container.appendChild(itemDiv);
 
-            // Render Children
             if (node.type === 'folder' && node.isOpen && node.children) {
                 const childrenContainer = document.createElement('div');
                 renderTree(node.children, childrenContainer, depth + 1);
@@ -396,7 +449,7 @@
         });
     }
 
-    // --- 5. SIDEBAR EDITOR FUNCTIONS ---
+    // --- 7. LOGIC ---
     function findNode(nodes, id) {
         for(let node of nodes) {
             if(node.id === id) return node;
@@ -415,6 +468,7 @@
         if(name) {
             parent.children.push({ id: Date.now().toString(), title: name, type: 'file', content: '' });
             parent.isOpen = true;
+            saveStructureToDB();
             renderTree(vaultData, document.getElementById('file-tree'));
         }
     }
@@ -426,6 +480,7 @@
         if(name) {
             parent.children.push({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
             parent.isOpen = true;
+            saveStructureToDB();
             renderTree(vaultData, document.getElementById('file-tree'));
         }
     }
@@ -440,7 +495,11 @@
             for(let n of nodes) { if(n.children && remove(n.children)) return true; }
         }
         remove(vaultData);
+        saveStructureToDB();
         renderTree(vaultData, document.getElementById('file-tree'));
+        
+        // Also remove note content from DB if it was a file
+        // (Optional optimization: db.collection('notes').doc(id).delete())
         if(currentNoteId === id) {
             document.getElementById('editor').innerHTML = '';
             document.getElementById('note-title').value = '';
@@ -453,30 +512,37 @@
         const newName = prompt("Rename to:", node.title);
         if(newName) {
             node.title = newName;
+            saveStructureToDB();
             renderTree(vaultData, document.getElementById('file-tree'));
             if(currentNoteId === id) document.getElementById('note-title').value = newName;
         }
     }
 
-    // --- 6. NOTE LOGIC ---
-    function openNote(node) {
+    async function openNote(node) {
         currentNoteId = node.id;
-        
-        // Highlight
         document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
         renderTree(vaultData, document.getElementById('file-tree')); // simpler refresh
         
-        // Breadcrumbs
         document.getElementById('breadcrumbs').innerText = getBreadcrumbs(vaultData, node.id) || "Vault";
         document.getElementById('note-title').value = node.title;
-        document.getElementById('editor').innerHTML = node.content || '';
+        document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
         
         if(window.innerWidth <= 768) toggleSidebar();
-    }
 
-    function updateNoteContent(id, content) {
-        const node = findNode(vaultData, id);
-        if(node) node.content = content;
+        // Fetch Content
+        try {
+            const doc = await db.collection('notes').doc(node.id).get();
+            if(doc.exists) {
+                const data = doc.data();
+                document.getElementById('editor').innerHTML = data.content;
+                node.content = data.content; // update local cache
+            } else {
+                document.getElementById('editor').innerHTML = node.content || '';
+            }
+        } catch(e) {
+            console.error("Fetch failed", e);
+            document.getElementById('editor').innerHTML = node.content || '';
+        }
     }
 
     function getBreadcrumbs(nodes, id, path = '') {
@@ -490,7 +556,6 @@
         return null;
     }
 
-    // --- 7. SEARCH (Advanced) ---
     function handleSearch(e) {
         const query = e.target.value.toLowerCase();
         const tree = document.getElementById('file-tree');
@@ -511,20 +576,17 @@
             nodes.forEach(n => {
                 const currentPath = path ? `${path} > ${n.title}` : n.title;
                 if(n.type === 'file') {
-                    // Match Title or Content
                     const titleMatch = n.title.toLowerCase().includes(query);
                     const contentMatch = n.content && n.content.toLowerCase().includes(query);
                     
                     if(titleMatch || contentMatch) {
-                        // Create Snippet
                         let snippet = "";
                         if(contentMatch) {
                             const idx = n.content.toLowerCase().indexOf(query);
                             const start = Math.max(0, idx - 20);
                             const end = Math.min(n.content.length, idx + 50);
-                            snippet = "..." + n.content.substring(start, end).replace(/<[^>]*>/g, '') + "..."; // Strip HTML for snippet
+                            snippet = "..." + n.content.substring(start, end).replace(/<[^>]*>/g, '') + "...";
                         }
-                        
                         results.push({ node: n, path: currentPath, snippet });
                     }
                 }
@@ -547,7 +609,6 @@
                 `;
                 div.onclick = () => {
                     openNote(res.node);
-                    // Reset search
                     document.getElementById('search-input').value = '';
                     tree.style.display = 'block';
                     resultsList.style.display = 'none';
@@ -557,7 +618,6 @@
         }
     }
 
-    // --- 8. EDITOR TOOLBAR & MODES ---
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const btn = document.getElementById('mode-toggle');
@@ -577,6 +637,7 @@
             editor.contentEditable = false;
             titleInput.setAttribute('readonly', true);
             toolbar.classList.remove('visible');
+            if(currentNoteId) saveNoteContent(currentNoteId); // Trigger save on exit
         }
     }
 
@@ -584,28 +645,16 @@
         document.execCommand(cmd, false, val);
         document.getElementById('editor').focus();
     }
-
-    function insertLink() {
-        const url = prompt("URL:");
-        if(url) fmt('createLink', url);
-    }
-    
-    function insertImage() {
-        const url = prompt("Image URL:");
-        if(url) fmt('insertHTML', `<img src="${url}">`);
-    }
-
-    function insertVideo() {
-        const url = prompt("YouTube URL:");
+    function insertLink() { const url = prompt("URL:"); if(url) fmt('createLink', url); }
+    function insertImage() { const url = prompt("Image URL:"); if(url) fmt('insertHTML', `<img src="${url}">`); }
+    function insertVideo() { 
+        const url = prompt("YouTube URL:"); 
         if(url) {
             const videoId = url.split('v=')[1]?.split('&')[0];
-            if(videoId) {
-                fmt('insertHTML', `<div style="position:relative; padding-bottom:56.25%; height:0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe></div><p><br></p>`);
-            }
+            if(videoId) fmt('insertHTML', `<div style="position:relative; padding-bottom:56.25%; height:0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe></div><p><br></p>`);
         }
     }
 
-    // --- 9. SETTINGS & EXPORT ---
     function toggleDropdown() {
         const d = document.getElementById("settings-dropdown");
         d.style.display = d.style.display === "block" ? "none" : "block";
@@ -613,12 +662,9 @@
 
     function exportData() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vaultData));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "im_vault_backup.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const a = document.createElement('a');
+        a.href = dataStr; a.download = "im_vault_backup.json";
+        a.click();
     }
 
     function importData() {
@@ -630,40 +676,31 @@
             reader.readAsText(file, 'UTF-8');
             reader.onload = readerEvent => {
                 try {
-                    const content = readerEvent.target.result;
-                    vaultData = JSON.parse(content);
+                    vaultData = JSON.parse(readerEvent.target.result);
+                    saveStructureToDB();
                     renderTree(vaultData, document.getElementById('file-tree'));
                     alert("Import Successful");
-                } catch(err) { alert("Invalid JSON file"); }
+                } catch(err) { alert("Invalid JSON"); }
             }
         }
         input.click();
     }
 
-    // --- UI HELPERS ---
     function toggleSidebar() {
         const sb = document.getElementById('app-sidebar');
         sb.classList.toggle('open');
-        const bd = document.getElementById('backdrop');
-        if(sb.classList.contains('open')) bd.style.display = 'block';
-        else bd.style.display = 'none';
+        document.getElementById('backdrop').style.display = sb.classList.contains('open') ? 'block' : 'none';
     }
     function closeSidebar() {
         document.getElementById('app-sidebar').classList.remove('open');
         document.getElementById('backdrop').style.display = 'none';
     }
     function toggleAllFolders(state) {
-        function toggle(nodes) {
-            nodes.forEach(n => {
-                if(n.type==='folder') { n.isOpen = state; if(n.children) toggle(n.children); }
-            });
-        }
+        function toggle(nodes) { nodes.forEach(n => { if(n.type==='folder') { n.isOpen = state; if(n.children) toggle(n.children); } }); }
         toggle(vaultData);
         renderTree(vaultData, document.getElementById('file-tree'));
     }
-    function focusEditor() {
-        if(isEditMode) document.getElementById('editor').focus();
-    }
+    function focusEditor() { if(isEditMode) document.getElementById('editor').focus(); }
 </script>
 
 </body>
