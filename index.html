@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Obsidian-Style IM Tracker</title>
+    <title>IM Obsidian V7</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            /* Obsidian Dark Theme Palette */
-            --bg-1: #1e1e1e;       /* App Background */
-            --bg-2: #252526;       /* Sidebar Background */
-            --bg-3: #333333;       /* Active Item / Hover */
-            --text-normal: #dcddde;
+            /* Theme Variables */
+            --bg-1: #1e1e1e;       /* Main Background */
+            --bg-2: #252526;       /* Sidebar/Toolbar */
+            --bg-3: #2d2d2d;       /* Hover/Active */
+            --bg-search: #333;
+            --text-main: #e0e0e0;
             --text-muted: #858585;
-            --accent: #7f6df2;     /* Your Purple Accent */
+            --accent: #7f6df2;     
+            --accent-hover: #6a5acd;
             --border: #333333;
-            --danger: #cf6679;
+            --danger: #e06c75;
             
-            /* Dimensions */
-            --sidebar-width: 300px;
+            --sidebar-width: 320px;
             --header-height: 50px;
         }
 
@@ -29,14 +30,14 @@
         body {
             margin: 0; padding: 0;
             background-color: var(--bg-1);
-            color: var(--text-normal);
+            color: var(--text-main);
             font-family: 'Inter', sans-serif;
             height: 100vh;
             display: flex;
             overflow: hidden;
         }
 
-        /* --- LEFT PANE: FILE EXPLORER --- */
+        /* --- 1. SIDEBAR --- */
         #app-sidebar {
             width: var(--sidebar-width);
             background-color: var(--bg-2);
@@ -45,9 +46,9 @@
             flex-direction: column;
             flex-shrink: 0;
             transition: transform 0.2s ease;
+            z-index: 50;
         }
 
-        /* Sidebar Header (Vault Name & Actions) */
         .sidebar-header {
             height: var(--header-height);
             padding: 0 16px;
@@ -55,407 +56,615 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--text-normal);
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            background: var(--bg-2);
         }
 
-        .icon-btn {
-            background: transparent; border: none; color: var(--text-muted);
+        /* Sidebar Actions */
+        .sidebar-actions button {
+            background: none; border: none; color: var(--text-muted);
             cursor: pointer; padding: 4px; border-radius: 4px;
-            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; transition: 0.2s;
         }
-        .icon-btn:hover { background-color: var(--bg-3); color: var(--text-normal); }
+        .sidebar-actions button:hover { color: #fff; background: var(--bg-3); }
 
-        /* Search Bar */
-        .search-container {
-            padding: 10px 16px;
-        }
+        /* Search */
+        .search-container { padding: 10px 16px; background: var(--bg-2); }
         .search-input {
-            width: 100%;
-            background-color: #111;
-            border: 1px solid #333;
-            padding: 6px 10px;
-            border-radius: 4px;
-            color: var(--text-normal);
-            font-size: 0.85rem;
+            width: 100%; background-color: #181818; border: 1px solid #333;
+            padding: 8px 12px; border-radius: 6px; color: var(--text-main); font-size: 0.85rem;
         }
         .search-input:focus { border-color: var(--accent); }
 
-        /* File Tree */
-        .file-tree {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 8px 20px 8px;
-        }
+        /* Tree Area */
+        .file-tree { flex: 1; overflow-y: auto; padding: 5px 0 20px 0; }
 
-        /* Tree Item Base */
+        /* Tree Item */
         .tree-item {
-            display: flex;
-            align-items: center;
-            padding: 4px 8px;
-            cursor: pointer;
-            border-radius: 4px;
-            margin-bottom: 2px;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            transition: background 0.1s;
+            display: flex; align-items: center; padding: 5px 8px 5px 20px;
+            cursor: pointer; font-size: 0.85rem; color: var(--text-muted);
+            border-left: 2px solid transparent; position: relative;
         }
-        .tree-item:hover { background-color: var(--bg-3); color: var(--text-normal); }
-        .tree-item.active { background-color: #37373d; color: #fff; }
+        .tree-item:hover { background-color: var(--bg-3); color: var(--text-main); }
+        .tree-item.active { background-color: rgba(127,109,242,0.1); color: #fff; border-left-color: var(--accent); }
 
         /* Folder Specifics */
-        .folder-header { font-weight: 600; color: var(--text-normal); }
-        .collapse-icon {
-            width: 16px; height: 16px; margin-right: 6px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.7rem; transition: transform 0.2s;
-        }
-        .collapse-icon.open { transform: rotate(90deg); }
-        
-        /* File Specifics */
-        .file-item { padding-left: 28px; } /* Indentation */
-        .file-icon { margin-right: 8px; font-size: 0.9rem; }
-        
-        /* Indentation Logic for Nested Folders */
-        .folder-content { display: none; border-left: 1px solid #333; margin-left: 11px; padding-left: 4px; }
+        .folder-header { font-weight: 600; color: var(--text-main); padding-right: 4px; }
+        .folder-content { display: none; margin-left: 12px; border-left: 1px solid #333; }
         .folder-content.show { display: block; }
+        
+        .arrow { 
+            width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center;
+            margin-right: 6px; font-size: 0.7rem; transition: transform 0.2s; 
+        }
+        .arrow.open { transform: rotate(90deg); }
 
-        /* Indicators */
-        .dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 8px; }
-        .dot.red { background-color: #ff5555; box-shadow: 0 0 5px rgba(255,85,85,0.4); }
-        .dot.yellow { background-color: #f1c40f; }
+        /* Sidebar Hover Controls (Edit/Delete) */
+        .node-controls {
+            display: none; margin-left: auto; gap: 4px;
+        }
+        .tree-item:hover .node-controls { display: flex; }
+        .ctrl-btn {
+            width: 20px; height: 20px; border-radius: 3px; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 10px;
+            background: #444; color: #ccc;
+        }
+        .ctrl-btn:hover { background: var(--accent); color: white; }
+        .ctrl-btn.del:hover { background: var(--danger); }
 
-        /* --- RIGHT PANE: EDITOR --- */
+        /* Search Results View */
+        .search-results { display: none; flex-direction: column; padding: 0; }
+        .search-result-item {
+            padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer;
+        }
+        .search-result-item:hover { background: var(--bg-3); }
+        .result-path { font-size: 0.7rem; color: var(--accent); margin-bottom: 4px; }
+        .result-title { font-weight: 600; font-size: 0.9rem; color: #fff; margin-bottom: 4px; }
+        .result-snippet { font-size: 0.8rem; color: #aaa; font-style: italic; }
+        .highlight { background: rgba(255, 255, 0, 0.2); color: #fff; }
+
+        /* --- 2. MAIN AREA --- */
         #app-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background-color: var(--bg-1);
-            position: relative;
+            flex: 1; display: flex; flex-direction: column;
+            background-color: var(--bg-1); position: relative;
         }
 
-        /* Mobile Header (Hamburger) */
-        .mobile-nav {
-            display: none; height: 50px; border-bottom: 1px solid var(--border);
-            align-items: center; padding: 0 16px; background: var(--bg-2);
+        /* Header */
+        .main-header {
+            height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg-1);
         }
-
-        /* Breadcrumbs / Note Header */
-        .editor-header {
-            padding: 20px 40px 0 40px;
-            max-width: 900px;
-            margin: 0 auto;
-            width: 100%;
-        }
-        .breadcrumbs { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
         
-        input.note-title-edit {
-            background: transparent; border: none; color: var(--text-normal);
-            font-size: 2rem; font-weight: 700; width: 100%;
-            font-family: 'Inter', sans-serif;
+        /* Dropdown Menu */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content {
+            display: none; position: absolute; right: 0; top: 100%;
+            background-color: var(--bg-2); min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 200;
+            border: 1px solid var(--border); border-radius: 6px;
         }
+        .dropdown-content button {
+            color: var(--text-main); padding: 12px 16px; text-decoration: none;
+            display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .dropdown-content button:hover { background-color: var(--bg-3); }
+        .dropdown.show .dropdown-content { display: block; }
 
-        /* Editor Surface */
-        .editor-canvas {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 40px 100px 40px;
-            cursor: text;
+        /* Toggle Button */
+        .mode-toggle {
+            background: var(--bg-2); border: 1px solid var(--border); color: var(--text-muted);
+            padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-right: 10px;
         }
-        .editor-content {
-            max-width: 820px;
-            margin: 0 auto;
-            font-size: 1.1rem;
-            line-height: 1.7;
-            min-height: 60vh;
-        }
-        .editor-content:empty:before { content: 'Start writing...'; color: #444; }
+        .mode-toggle.active { color: var(--accent); border-color: var(--accent); background: rgba(127,109,242,0.1); }
+
+        /* --- 3. EDITOR & TOOLBAR --- */
         
-        /* Markdown-ish Styling */
-        .editor-content h1, h2, h3 { color: #fff; margin-top: 1.5em; }
-        .editor-content h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5em; color: var(--accent); }
-        .editor-content blockquote { border-left: 3px solid var(--accent); margin: 0; padding-left: 1em; color: var(--text-muted); }
-        .editor-content code { background: #2d2d2d; padding: 2px 5px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
-
-        /* Floating Edit Toggle */
-        .mode-switch {
-            position: absolute; top: 15px; right: 20px;
-            background: #252526; border: 1px solid #444; color: #ccc;
-            padding: 6px 12px; border-radius: 20px; font-size: 0.75rem;
-            cursor: pointer; font-weight: 600; text-transform: uppercase;
-            z-index: 50; transition: all 0.2s;
+        /* Formatting Toolbar (Obsidian Style) */
+        .editor-toolbar {
+            display: none; /* Hidden in Read mode */
+            align-items: center; gap: 8px; padding: 10px 20px;
+            background: var(--bg-1); border-bottom: 1px solid var(--border);
+            overflow-x: auto; white-space: nowrap;
         }
-        .mode-switch.active { border-color: var(--accent); color: var(--accent); background: rgba(127,109,242,0.1); }
+        .editor-toolbar.visible { display: flex; }
+        
+        .fmt-btn {
+            background: transparent; border: 1px solid transparent; color: var(--text-muted);
+            cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.9rem;
+        }
+        .fmt-btn:hover { background: var(--bg-3); color: #fff; }
+        .fmt-btn.active { color: var(--accent); }
 
-        /* Responsive */
+        /* Editor Area */
+        .editor-scroll { flex: 1; overflow-y: auto; padding: 0 20px 50px 20px; }
+        .editor-container { max-width: 800px; margin: 0 auto; padding-top: 40px; }
+
+        .breadcrumbs { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
+        
+        .note-title-input {
+            width: 100%; background: transparent; border: none; color: var(--text-main);
+            font-size: 2.2rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 20px;
+        }
+
+        .note-content {
+            font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh;
+        }
+        .note-content:empty:before { content: 'Start writing...'; color: #444; }
+
+        /* Markdown Styles */
+        .note-content h1, .note-content h2, .note-content h3 { color: #fff; margin-top: 1.5em; }
+        .note-content h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; color: var(--accent); }
+        .note-content blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding-left: 1em; color: var(--text-muted); background: rgba(127,109,242,0.05); padding: 10px; border-radius: 0 4px 4px 0; }
+        .note-content img { max-width: 100%; border-radius: 4px; border: 1px solid var(--border); }
+        .note-content a { color: var(--accent); text-decoration: underline; }
+
+        /* Mobile */
+        .mobile-hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
+        
         @media (max-width: 768px) {
-            .mobile-nav { display: flex; }
-            #app-sidebar { position: fixed; height: 100%; z-index: 100; transform: translateX(-100%); }
+            #app-sidebar { position: fixed; height: 100%; transform: translateX(-100%); }
             #app-sidebar.open { transform: translateX(0); }
-            .editor-header, .editor-canvas { padding-left: 20px; padding-right: 20px; }
-            .mode-switch { top: 60px; }
+            .mobile-hamburger { display: block; }
+            .main-header { padding: 0 10px; }
         }
     </style>
 </head>
 <body>
 
-    <aside id="app-sidebar">
-        <div class="sidebar-header">
-            <span>IM VAULT</span>
-            <div style="display:flex; gap:5px;">
-                <button class="icon-btn" title="New Note" onclick="createNewNote()">+</button>
-                <button class="icon-btn" title="Close" onclick="toggleSidebar()" style="display:none;" id="close-sidebar-btn">x</button>
-            </div>
+<aside id="app-sidebar">
+    <div class="sidebar-header">
+        <span>IM VAULT</span>
+        <div class="sidebar-actions">
+            <button onclick="toggleAllFolders(false)" title="Collapse All">-</button>
         </div>
-        
-        <div class="search-container">
-            <input type="text" class="search-input" placeholder="Search files..." id="search-box">
-        </div>
+    </div>
+    
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="Search notes..." id="search-input">
+    </div>
 
-        <div id="file-tree" class="file-tree">
-            </div>
-    </aside>
+    <div id="file-tree" class="file-tree"></div>
 
-    <section id="app-main">
-        <div class="mobile-nav">
-            <button class="icon-btn" onclick="toggleSidebar()" style="font-size:1.2rem;">☰</button>
-            <span style="margin-left:15px; font-weight:600;">IM Curriculum</span>
-        </div>
+    <div id="search-results-list" class="search-results file-tree"></div>
+</aside>
 
-        <button id="edit-mode-btn" class="mode-switch" onclick="toggleEditMode()">Read Only</button>
-
-        <div class="editor-header">
-            <div class="breadcrumbs" id="breadcrumbs">Vault / Select a file</div>
-            <input type="text" class="note-title-edit" id="note-title" value="" placeholder="Untitled" readonly>
+<section id="app-main">
+    
+    <header class="main-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <button class="mobile-hamburger" onclick="toggleSidebar()">☰</button>
+            <span style="font-weight:600; font-size:0.9rem;">Workspace</span>
         </div>
 
-        <div class="editor-canvas" onclick="focusEditor()">
-            <div id="editor" class="editor-content" spellcheck="false" contenteditable="false"></div>
-        </div>
-    </section>
-
-    <script>
-        // --- DATA (Populated from your PDF) ---
-        // Notice the deep nesting for History Taking as requested
-        const vaultData = [
-            {
-                id: 'folder-cvs', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
-                    {
-                        id: 'folder-cvs-hx', title: 'History & Exam', type: 'folder', isOpen: true, children: [
-                            { 
-                                id: 'folder-hx-taking', title: 'History Taking', type: 'folder', isOpen: true, children: [
-                                    { id: 'note-cvs-grading', title: 'Grading Effort Intolerance', type: 'note', tag: 'must', content: '<h2>NYHA Classification</h2><ul><li><b>Class I:</b> No limitation of physical activity.</li><li><b>Class II:</b> Slight limitation. Comfortable at rest.</li><li><b>Class III:</b> Marked limitation. Less than ordinary activity causes symptoms.</li><li><b>Class IV:</b> Unable to carry on any physical activity without discomfort. Symptoms at rest.</li></ul>' },
-                                    { id: 'note-cvs-sob', title: 'SOB & Orthopnoea', type: 'note', tag: 'must', content: '<h2>Shortness of Breath</h2><p>Differentiate cardiac vs respiratory causes...</p><h3>Orthopnoea</h3><p>Breathlessness on lying flat...</p>' },
-                                    { id: 'note-cvs-risk', title: 'Risk Factors', type: 'note', tag: 'must', content: '<h2>Major Risk Factors</h2><ul><li>Hypertension</li><li>Diabetes Mellitus</li><li>Dyslipidaemia</li><li>Smoking</li><li>Family History</li></ul>' }
-                                ]
-                            },
-                            { 
-                                id: 'folder-exam', title: 'Physical Exam', type: 'folder', children: [
-                                    { id: 'note-exam-hands', title: 'Hands', type: 'note', tag: 'must', content: 'Clubbing, Splinter Haemorrhages, Janeway Lesions...' },
-                                    { id: 'note-exam-precord', title: 'Precordium', type: 'note', tag: 'must', content: 'Apex beat character, Heaves, Thrills...' }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        id: 'folder-htn', title: 'Hypertension', type: 'folder', children: [
-                             { id: 'note-htn-def', title: 'Definitions', type: 'note', tag: 'must', content: 'BP > 140/90 mmHg...' },
-                             { id: 'note-htn-sec', title: 'Secondary Causes', type: 'note', tag: 'good', content: 'ROPE: Renal disease, Obesity, Pregnancy, Endocrine...' }
-                        ]
-                    }
-                ]
-            },
-            {
-                id: 'folder-resp', title: '2. Respiratory', type: 'folder', children: [
-                    { id: 'folder-asthma', title: 'Bronchial Asthma', type: 'folder', children: [
-                        { id: 'note-asthma-dx', title: 'Diagnosis', type: 'note', tag: 'must', content: 'Spirometry showing reversibility > 12%...' },
-                        { id: 'note-asthma-acute', title: 'Acute Management', type: 'note', tag: 'must', content: 'Oxygen, Salbutamol, Hydrocortisone...' }
-                    ]}
-                ]
-            },
-             {
-                id: 'folder-rheum', title: '9. Rheumatology', type: 'folder', children: [
-                    { id: 'folder-gout', title: 'Gout', type: 'folder', children: [
-                        { id: 'note-gout-acute', title: 'Acute Gout', type: 'note', tag: 'must', content: 'Monoarthritis, usually 1st MTPJ...' },
-                        { id: 'note-gout-chronic', title: 'Chronic Tophaceous', type: 'note', tag: 'must', content: 'Tophi formation, bone destruction...' }
-                    ]}
-                ]
-            }
-        ];
-
-        // --- APP STATE ---
-        let activeNoteId = null;
-        let isEditMode = false;
-
-        // --- INIT ---
-        window.addEventListener('DOMContentLoaded', () => {
-            renderTree(vaultData, document.getElementById('file-tree'));
+        <div style="display:flex; align-items:center;">
+            <button id="mode-toggle" class="mode-toggle" onclick="toggleEditMode()">Read Only</button>
             
-            // Search listener
-            document.getElementById('search-box').addEventListener('input', (e) => filterTree(e.target.value));
+            <div class="dropdown">
+                <button class="icon-btn" onclick="toggleDropdown()" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">⋮</button>
+                <div id="settings-dropdown" class="dropdown-content">
+                    <button onclick="exportData()">Export Data (JSON)</button>
+                    <button onclick="importData()">Import Data</button>
+                    <button onclick="alert('Help: Select a folder to create files inside. Use right-click or hover icons to edit.')">Help</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="editor-toolbar" class="editor-toolbar">
+        <button class="fmt-btn" onclick="fmt('bold')" title="Bold">B</button>
+        <button class="fmt-btn" onclick="fmt('italic')" title="Italic">I</button>
+        <button class="fmt-btn" onclick="fmt('underline')" title="Underline">U</button>
+        <div style="width:1px; background:#444; height:20px;"></div>
+        <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
+        <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
+        <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
+        <button class="fmt-btn" onclick="fmt('formatBlock', 'blockquote')" title="Quote">Quote</button>
+        <div style="width:1px; background:#444; height:20px;"></div>
+        <button class="fmt-btn" onclick="insertLink()" title="Link">Link</button>
+        <button class="fmt-btn" onclick="insertImage()" title="Image">Image</button>
+        <button class="fmt-btn" onclick="insertVideo()" title="YouTube">Video</button>
+    </div>
+
+    <div class="editor-scroll" onclick="focusEditor()">
+        <div class="editor-container">
+            <div id="breadcrumbs" class="breadcrumbs">Start</div>
+            <input type="text" id="note-title" class="note-title-input" placeholder="No Note Selected" readonly>
+            <div id="editor" class="note-content" contenteditable="false"></div>
+        </div>
+    </div>
+
+</section>
+
+<script>
+    // --- 1. INITIAL DATA (PDF Curriculum) ---
+    // Deep structure enabled
+    let vaultData = [
+        {
+            id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
+                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
+                    { id: '1-1-1', title: 'History Taking', type: 'folder', children: [
+                        { id: '1-1-1-a', title: 'Symptoms', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p><h2>Chest Pain</h2><p>SOCRATES method...</p>' },
+                        { id: '1-1-1-b', title: 'Risk Factors', type: 'file', content: '<ul><li>Hypertension</li><li>Diabetes</li><li>Smoking</li></ul>' }
+                    ]},
+                    { id: '1-1-2', title: 'Physical Exam', type: 'file', content: 'Hands, Pulse, JVP, Apex Beat...' }
+                ]},
+                { id: '1-2', title: 'Hypertension', type: 'file', content: 'Definitions, Secondary Causes (Renal, Endocrine)...' }
+            ]
+        },
+        {
+            id: '2', title: '2. Respiratory', type: 'folder', children: [
+                { id: '2-1', title: 'Asthma', type: 'folder', children: [
+                    { id: '2-1-1', title: 'Diagnosis', type: 'file', content: 'Spirometry reversibility...' },
+                    { id: '2-1-2', title: 'Management', type: 'file', content: 'Acute: O2, Nebs, Steroids. Chronic: Step-up therapy.' }
+                ]},
+                { id: '2-2', title: 'COPD', type: 'file', content: 'Smoking Hx, Irreversible obstruction...' }
+            ]
+        },
+        { id: '3', title: '3. Renal', type: 'folder', children: [
+            { id: '3-1', title: 'AKI', type: 'file', content: 'Prerenal, Intrinsic, Postrenal...' }
+        ]},
+        { id: '4', title: '4. Infectious Disease', type: 'folder', children: [
+            { id: '4-1', title: 'General', type: 'file', content: 'PUO, Sepsis 6...' },
+            { id: '4-2', title: 'Vector Borne', type: 'file', content: 'Dengue, Malaria...' }
+        ]},
+        { id: '5', title: '5. GIT & Liver', type: 'folder', children: [
+            { id: '5-1', title: 'Hepatology', type: 'file', content: 'Cirrhosis, Portal HTN...' }
+        ]},
+        { id: '6', title: '6. Neurology', type: 'folder', children: [
+            { id: '6-1', title: 'Stroke', type: 'file', content: 'Bamford Classification...' }
+        ]}
+    ];
+
+    // --- 2. APP STATE ---
+    let currentNoteId = null;
+    let isEditMode = false;
+
+    // --- 3. INIT ---
+    window.addEventListener('DOMContentLoaded', () => {
+        renderTree(vaultData, document.getElementById('file-tree'));
+        
+        // Search
+        document.getElementById('search-input').addEventListener('input', handleSearch);
+        
+        // Autosave simulation
+        document.getElementById('editor').addEventListener('input', () => {
+             if(currentNoteId) updateNoteContent(currentNoteId, document.getElementById('editor').innerHTML);
         });
 
-        // --- RENDERER (Recursive) ---
-        function renderTree(nodes, container, depth = 0) {
-            container.innerHTML = ''; // Clear current level
-            
-            nodes.forEach(node => {
-                if (node.hidden) return; // For search filtering
-
-                if (node.type === 'folder') {
-                    // 1. Folder Header
-                    const folderDiv = document.createElement('div');
-                    folderDiv.className = 'tree-item folder-header';
-                    // Indent based on depth? No, we use margin in CSS for children
-                    folderDiv.onclick = (e) => toggleFolder(e, node, childrenContainer);
-
-                    folderDiv.innerHTML = `
-                        <span class="collapse-icon ${node.isOpen ? 'open' : ''}">▶</span>
-                        <span>${node.title}</span>
-                    `;
-                    container.appendChild(folderDiv);
-
-                    // 2. Folder Children Container
-                    const childrenContainer = document.createElement('div');
-                    childrenContainer.className = `folder-content ${node.isOpen ? 'show' : ''}`;
-                    container.appendChild(childrenContainer);
-
-                    // Recurse
-                    renderTree(node.children, childrenContainer, depth + 1);
-
-                } else {
-                    // 3. File Item
-                    const fileDiv = document.createElement('div');
-                    fileDiv.className = `tree-item file-item ${activeNoteId === node.id ? 'active' : ''}`;
-                    fileDiv.onclick = () => openNote(node);
-
-                    // Tag Color
-                    let dotClass = node.tag === 'must' ? 'red' : (node.tag === 'good' ? 'yellow' : 'gray');
-                    
-                    fileDiv.innerHTML = `
-                        <div class="dot ${dotClass}"></div>
-                        <span>${node.title}</span>
-                    `;
-                    container.appendChild(fileDiv);
+        // Click outside closes dropdown
+        window.onclick = function(event) {
+            if (!event.target.matches('.icon-btn')) {
+                const dropdowns = document.getElementsByClassName("dropdown-content");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].style.display === "block") dropdowns[i].style.display = "none";
                 }
+            }
+        }
+    });
+
+    // --- 4. TREE RENDERER (Recursive with Actions) ---
+    function renderTree(nodes, container, depth = 0) {
+        container.innerHTML = '';
+        nodes.forEach(node => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'tree-item';
+            // Indent content, not the div itself, for hover bar to span full width
+            
+            // Icon
+            const icon = node.type === 'folder' 
+                ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span> 📁` 
+                : `<span style="width:14px; display:inline-block"></span> 📄`;
+
+            // HTML Structure
+            itemDiv.innerHTML = `
+                <div style="display:flex; align-items:center; flex:1; padding-left:${depth * 12}px">
+                    ${icon} <span style="margin-left:6px; font-weight:${node.type==='folder'?'600':'400'}">${node.title}</span>
+                </div>
+                <div class="node-controls">
+                    ${node.type==='folder' ? `<button class="ctrl-btn" onclick="addFile('${node.id}', event)" title="New File">＋</button>` : ''}
+                    ${node.type==='folder' ? `<button class="ctrl-btn" onclick="addFolder('${node.id}', event)" title="New Folder">🗂</button>` : ''}
+                    <button class="ctrl-btn" onclick="renameNode('${node.id}', event)" title="Rename">✎</button>
+                    <button class="ctrl-btn del" onclick="deleteNode('${node.id}', event)" title="Delete">🗑</button>
+                </div>
+            `;
+
+            // Click Handler
+            itemDiv.onclick = (e) => {
+                if (e.target.closest('.ctrl-btn')) return; // Ignore control clicks
+                if (node.type === 'folder') {
+                    node.isOpen = !node.isOpen;
+                    renderTree(vaultData, document.getElementById('file-tree'));
+                } else {
+                    openNote(node);
+                }
+            };
+
+            // Active Class
+            if (currentNoteId === node.id) itemDiv.classList.add('active');
+
+            container.appendChild(itemDiv);
+
+            // Render Children
+            if (node.type === 'folder' && node.isOpen && node.children) {
+                const childrenContainer = document.createElement('div');
+                renderTree(node.children, childrenContainer, depth + 1);
+                container.appendChild(childrenContainer);
+            }
+        });
+    }
+
+    // --- 5. SIDEBAR EDITOR FUNCTIONS ---
+    function findNode(nodes, id) {
+        for(let node of nodes) {
+            if(node.id === id) return node;
+            if(node.children) {
+                let found = findNode(node.children, id);
+                if(found) return found;
+            }
+        }
+        return null;
+    }
+
+    function addFile(parentId, e) {
+        e.stopPropagation();
+        const parent = findNode(vaultData, parentId);
+        const name = prompt("Name of new note:");
+        if(name) {
+            parent.children.push({ id: Date.now().toString(), title: name, type: 'file', content: '' });
+            parent.isOpen = true;
+            renderTree(vaultData, document.getElementById('file-tree'));
+        }
+    }
+
+    function addFolder(parentId, e) {
+        e.stopPropagation();
+        const parent = findNode(vaultData, parentId);
+        const name = prompt("Name of new folder:");
+        if(name) {
+            parent.children.push({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
+            parent.isOpen = true;
+            renderTree(vaultData, document.getElementById('file-tree'));
+        }
+    }
+
+    function deleteNode(id, e) {
+        e.stopPropagation();
+        if(!confirm("Delete this item?")) return;
+        
+        function remove(nodes) {
+            const idx = nodes.findIndex(n => n.id === id);
+            if(idx > -1) { nodes.splice(idx, 1); return true; }
+            for(let n of nodes) { if(n.children && remove(n.children)) return true; }
+        }
+        remove(vaultData);
+        renderTree(vaultData, document.getElementById('file-tree'));
+        if(currentNoteId === id) {
+            document.getElementById('editor').innerHTML = '';
+            document.getElementById('note-title').value = '';
+        }
+    }
+
+    function renameNode(id, e) {
+        e.stopPropagation();
+        const node = findNode(vaultData, id);
+        const newName = prompt("Rename to:", node.title);
+        if(newName) {
+            node.title = newName;
+            renderTree(vaultData, document.getElementById('file-tree'));
+            if(currentNoteId === id) document.getElementById('note-title').value = newName;
+        }
+    }
+
+    // --- 6. NOTE LOGIC ---
+    function openNote(node) {
+        currentNoteId = node.id;
+        
+        // Highlight
+        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
+        renderTree(vaultData, document.getElementById('file-tree')); // simpler refresh
+        
+        // Breadcrumbs
+        document.getElementById('breadcrumbs').innerText = getBreadcrumbs(vaultData, node.id) || "Vault";
+        document.getElementById('note-title').value = node.title;
+        document.getElementById('editor').innerHTML = node.content || '';
+        
+        if(window.innerWidth <= 768) toggleSidebar();
+    }
+
+    function updateNoteContent(id, content) {
+        const node = findNode(vaultData, id);
+        if(node) node.content = content;
+    }
+
+    function getBreadcrumbs(nodes, id, path = '') {
+        for(let node of nodes) {
+            if(node.id === id) return path ? `${path} / ${node.title}` : node.title;
+            if(node.children) {
+                let found = getBreadcrumbs(node.children, id, path ? `${path} / ${node.title}` : node.title);
+                if(found) return found;
+            }
+        }
+        return null;
+    }
+
+    // --- 7. SEARCH (Advanced) ---
+    function handleSearch(e) {
+        const query = e.target.value.toLowerCase();
+        const tree = document.getElementById('file-tree');
+        const resultsList = document.getElementById('search-results-list');
+
+        if(query.length < 2) {
+            tree.style.display = 'block';
+            resultsList.style.display = 'none';
+            return;
+        }
+
+        tree.style.display = 'none';
+        resultsList.style.display = 'flex';
+        resultsList.innerHTML = '';
+
+        let results = [];
+        function traverse(nodes, path) {
+            nodes.forEach(n => {
+                const currentPath = path ? `${path} > ${n.title}` : n.title;
+                if(n.type === 'file') {
+                    // Match Title or Content
+                    const titleMatch = n.title.toLowerCase().includes(query);
+                    const contentMatch = n.content && n.content.toLowerCase().includes(query);
+                    
+                    if(titleMatch || contentMatch) {
+                        // Create Snippet
+                        let snippet = "";
+                        if(contentMatch) {
+                            const idx = n.content.toLowerCase().indexOf(query);
+                            const start = Math.max(0, idx - 20);
+                            const end = Math.min(n.content.length, idx + 50);
+                            snippet = "..." + n.content.substring(start, end).replace(/<[^>]*>/g, '') + "..."; // Strip HTML for snippet
+                        }
+                        
+                        results.push({ node: n, path: currentPath, snippet });
+                    }
+                }
+                if(n.children) traverse(n.children, currentPath);
             });
         }
 
-        // --- ACTIONS ---
-        function toggleFolder(e, node, container) {
-            e.stopPropagation();
-            node.isOpen = !node.isOpen;
-            // Update UI directly for speed
-            const icon = e.currentTarget.querySelector('.collapse-icon');
-            if(node.isOpen) {
-                container.classList.add('show');
-                icon.classList.add('open');
-            } else {
-                container.classList.remove('show');
-                icon.classList.remove('open');
+        traverse(vaultData, "");
+
+        if(results.length === 0) {
+            resultsList.innerHTML = '<div style="padding:20px; color:#666; text-align:center;">No results found</div>';
+        } else {
+            results.forEach(res => {
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML = `
+                    <div class="result-path">${res.path}</div>
+                    <div class="result-title">${res.node.title}</div>
+                    ${res.snippet ? `<div class="result-snippet">${res.snippet}</div>` : ''}
+                `;
+                div.onclick = () => {
+                    openNote(res.node);
+                    // Reset search
+                    document.getElementById('search-input').value = '';
+                    tree.style.display = 'block';
+                    resultsList.style.display = 'none';
+                };
+                resultsList.appendChild(div);
+            });
+        }
+    }
+
+    // --- 8. EDITOR TOOLBAR & MODES ---
+    function toggleEditMode() {
+        isEditMode = !isEditMode;
+        const btn = document.getElementById('mode-toggle');
+        const editor = document.getElementById('editor');
+        const toolbar = document.getElementById('editor-toolbar');
+        const titleInput = document.getElementById('note-title');
+
+        if(isEditMode) {
+            btn.innerText = 'Editing...';
+            btn.classList.add('active');
+            editor.contentEditable = true;
+            titleInput.removeAttribute('readonly');
+            toolbar.classList.add('visible');
+        } else {
+            btn.innerText = 'Read Only';
+            btn.classList.remove('active');
+            editor.contentEditable = false;
+            titleInput.setAttribute('readonly', true);
+            toolbar.classList.remove('visible');
+        }
+    }
+
+    function fmt(cmd, val) {
+        document.execCommand(cmd, false, val);
+        document.getElementById('editor').focus();
+    }
+
+    function insertLink() {
+        const url = prompt("URL:");
+        if(url) fmt('createLink', url);
+    }
+    
+    function insertImage() {
+        const url = prompt("Image URL:");
+        if(url) fmt('insertHTML', `<img src="${url}">`);
+    }
+
+    function insertVideo() {
+        const url = prompt("YouTube URL:");
+        if(url) {
+            const videoId = url.split('v=')[1]?.split('&')[0];
+            if(videoId) {
+                fmt('insertHTML', `<div style="position:relative; padding-bottom:56.25%; height:0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe></div><p><br></p>`);
             }
         }
+    }
 
-        function openNote(node) {
-            activeNoteId = node.id;
-            
-            // Highlight in sidebar
-            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
-            // Re-render whole tree is safest but slow, let's just find the element if possible or re-render
-            renderTree(vaultData, document.getElementById('file-tree'));
+    // --- 9. SETTINGS & EXPORT ---
+    function toggleDropdown() {
+        const d = document.getElementById("settings-dropdown");
+        d.style.display = d.style.display === "block" ? "none" : "block";
+    }
 
-            // Mobile: Close sidebar
-            if (window.innerWidth <= 768) toggleSidebar();
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vaultData));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "im_vault_backup.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
 
-            // Populate Editor
-            const breadcrumbPath = getBreadcrumbs(vaultData, node.id);
-            document.getElementById('breadcrumbs').innerText = breadcrumbPath;
-            document.getElementById('note-title').value = node.title;
-            document.getElementById('editor').innerHTML = node.content || '';
-        }
-
-        function getBreadcrumbs(nodes, targetId, path = '') {
-            for (let node of nodes) {
-                if (node.id === targetId) return path ? `${path} / ${node.title}` : node.title;
-                if (node.children) {
-                    const found = getBreadcrumbs(node.children, targetId, path ? `${path} / ${node.title}` : node.title);
-                    if (found) return found;
-                }
-            }
-            return null;
-        }
-
-        function toggleEditMode() {
-            isEditMode = !isEditMode;
-            const btn = document.getElementById('edit-mode-btn');
-            const editor = document.getElementById('editor');
-            const title = document.getElementById('note-title');
-
-            if (isEditMode) {
-                btn.innerText = 'Edit Mode: ON';
-                btn.classList.add('active');
-                editor.contentEditable = true;
-                title.removeAttribute('readonly');
-                editor.focus();
-            } else {
-                btn.innerText = 'Read Only';
-                btn.classList.remove('active');
-                editor.contentEditable = false;
-                title.setAttribute('readonly', true);
-                // Here you would save to Firebase
-                console.log("Saving content...", editor.innerHTML);
+    function importData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = e => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.readAsText(file, 'UTF-8');
+            reader.onload = readerEvent => {
+                try {
+                    const content = readerEvent.target.result;
+                    vaultData = JSON.parse(content);
+                    renderTree(vaultData, document.getElementById('file-tree'));
+                    alert("Import Successful");
+                } catch(err) { alert("Invalid JSON file"); }
             }
         }
+        input.click();
+    }
 
-        function focusEditor() {
-            if (isEditMode) document.getElementById('editor').focus();
+    // --- UI HELPERS ---
+    function toggleSidebar() {
+        const sb = document.getElementById('app-sidebar');
+        sb.classList.toggle('open');
+        const bd = document.getElementById('backdrop');
+        if(sb.classList.contains('open')) bd.style.display = 'block';
+        else bd.style.display = 'none';
+    }
+    function closeSidebar() {
+        document.getElementById('app-sidebar').classList.remove('open');
+        document.getElementById('backdrop').style.display = 'none';
+    }
+    function toggleAllFolders(state) {
+        function toggle(nodes) {
+            nodes.forEach(n => {
+                if(n.type==='folder') { n.isOpen = state; if(n.children) toggle(n.children); }
+            });
         }
+        toggle(vaultData);
+        renderTree(vaultData, document.getElementById('file-tree'));
+    }
+    function focusEditor() {
+        if(isEditMode) document.getElementById('editor').focus();
+    }
+</script>
 
-        // --- SEARCH ---
-        function filterTree(query) {
-            const lowerQ = query.toLowerCase();
-            
-            function filterNodes(nodes) {
-                let hasVisibleChild = false;
-                nodes.forEach(node => {
-                    if (node.type === 'folder') {
-                        const childVisible = filterNodes(node.children);
-                        node.hidden = !childVisible && !node.title.toLowerCase().includes(lowerQ);
-                        if (!node.hidden) {
-                            node.isOpen = true; // Auto expand on search
-                            hasVisibleChild = true;
-                        }
-                    } else {
-                        // Search Title AND Content
-                        const match = node.title.toLowerCase().includes(lowerQ) || (node.content && node.content.toLowerCase().includes(lowerQ));
-                        node.hidden = !match;
-                        if (match) hasVisibleChild = true;
-                    }
-                });
-                return hasVisibleChild;
-            }
-
-            filterNodes(vaultData);
-            renderTree(vaultData, document.getElementById('file-tree'));
-        }
-
-        // --- UI UTILS ---
-        function toggleSidebar() {
-            const sb = document.getElementById('app-sidebar');
-            const closeBtn = document.getElementById('close-sidebar-btn');
-            sb.classList.toggle('open');
-            
-            // Toggle close button visibility on mobile
-            if (window.innerWidth <= 768) {
-                closeBtn.style.display = sb.classList.contains('open') ? 'block' : 'none';
-            }
-        }
-        
-        function createNewNote() {
-            alert("This would create a new note in the current folder. (Functionality placeholder)");
-        }
-
-    </script>
 </body>
 </html>
