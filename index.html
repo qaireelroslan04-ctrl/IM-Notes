@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IM Obsidian V8 (Firebase)</title>
+    <title>IM Obsidian V9 (Enhanced)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -161,6 +161,7 @@
         .fmt-btn {
             background: transparent; border: 1px solid transparent; color: var(--text-muted);
             cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.9rem;
+            min-width: 30px; text-align: center;
         }
         .fmt-btn:hover { background: var(--bg-3); color: #fff; }
         .fmt-btn.active { color: var(--accent); }
@@ -174,7 +175,7 @@
             font-size: 2.2rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 20px;
         }
 
-        .note-content { font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh; }
+        .note-content { font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh; tab-size: 4; }
         .note-content:empty:before { content: 'Start writing...'; color: #444; }
 
         .note-content h1, .note-content h2, .note-content h3 { color: #fff; margin-top: 1.5em; }
@@ -182,6 +183,7 @@
         .note-content blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding-left: 1em; color: var(--text-muted); background: rgba(127,109,242,0.05); padding: 10px; border-radius: 0 4px 4px 0; }
         .note-content img { max-width: 100%; border-radius: 4px; border: 1px solid var(--border); }
         .note-content a { color: var(--accent); text-decoration: underline; }
+        .note-content hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
 
         .mobile-hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
         
@@ -237,13 +239,19 @@
     </header>
 
     <div id="editor-toolbar" class="editor-toolbar">
+        <button class="fmt-btn" onclick="fmt('undo')" title="Undo">↺</button>
+        <button class="fmt-btn" onclick="fmt('redo')" title="Redo">↻</button>
+        <div style="width:1px; background:#444; height:20px;"></div>
         <button class="fmt-btn" onclick="fmt('bold')" title="Bold">B</button>
         <button class="fmt-btn" onclick="fmt('italic')" title="Italic">I</button>
         <button class="fmt-btn" onclick="fmt('underline')" title="Underline">U</button>
+        <button class="fmt-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
         <div style="width:1px; background:#444; height:20px;"></div>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
         <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
+        <button class="fmt-btn" onclick="fmt('insertOrderedList')" title="Numbered List">1. List</button>
+        <button class="fmt-btn" onclick="fmt('insertHorizontalRule')" title="Line Divider">—</button>
         <div style="width:1px; background:#444; height:20px;"></div>
         <button class="fmt-btn" onclick="insertLink()" title="Link">Link</button>
         <button class="fmt-btn" onclick="insertImage()" title="Image">Image</button>
@@ -272,23 +280,24 @@
         measurementId: "G-JTPQPT45CY"
     };
 
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const analytics = firebase.analytics();
 
     // --- 2. STATE ---
-    let vaultData = []; // Will be loaded from Firestore
+    let vaultData = [];
     let currentNoteId = null;
     let isEditMode = false;
     let saveTimeout;
 
-    // --- 3. INITIALIZATION ---
+    // --- 3. INIT ---
     window.addEventListener('DOMContentLoaded', () => {
         loadStructureFromDB();
 
-        // Listeners
+        // Search listener
         document.getElementById('search-input').addEventListener('input', handleSearch);
+        
+        // Autosave listener
         document.getElementById('editor').addEventListener('input', () => {
              if(currentNoteId) {
                  clearTimeout(saveTimeout);
@@ -305,9 +314,34 @@
                 }
             }
         }
+
+        // --- TAB KEY HANDLER ---
+        document.getElementById('editor').addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                // Check if in a list
+                if (document.queryCommandState('insertUnorderedList') || document.queryCommandState('insertOrderedList')) {
+                    // List: Indent / Outdent
+                    document.execCommand(e.shiftKey ? 'outdent' : 'indent');
+                } else {
+                    // Regular Text: Insert Tab Character (Visual Tab)
+                    if (!document.execCommand('insertText', false, '\t')) {
+                        // Fallback for browsers that don't support insertText well
+                        const selection = window.getSelection();
+                        const range = selection.getRangeAt(0);
+                        const tabNode = document.createTextNode("\u00a0\u00a0\u00a0\u00a0");
+                        range.insertNode(tabNode);
+                        range.setStartAfter(tabNode);
+                        range.setEndAfter(tabNode); 
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                }
+            }
+        });
     });
 
-    // --- 4. DATABASE FUNCTIONS ---
+    // --- 4. DB FUNCTIONS ---
     async function loadStructureFromDB() {
         try {
             const doc = await db.collection('config').doc('treeStructure').get();
@@ -315,7 +349,6 @@
                 vaultData = doc.data().tree;
                 renderTree(vaultData, document.getElementById('file-tree'));
             } else {
-                // DB is empty
                 vaultData = [];
                 renderTree([], document.getElementById('file-tree'));
                 document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#888">Database Empty.<br><br>Click ⋮ > Initialize with PDF Data</div>';
@@ -328,25 +361,16 @@
     }
 
     async function saveStructureToDB() {
-        // Save the Sidebar Tree Structure
-        try {
-            await db.collection('config').doc('treeStructure').set({ tree: vaultData });
-            console.log("Tree saved.");
-        } catch(e) { console.error("Save failed", e); }
+        try { await db.collection('config').doc('treeStructure').set({ tree: vaultData }); } 
+        catch(e) { console.error("Save failed", e); }
     }
 
     async function saveNoteContent(id) {
-        // Save the Content of a specific note
         const content = document.getElementById('editor').innerHTML;
         const title = document.getElementById('note-title').value;
         
-        // Update local tree memory for search
         const node = findNode(vaultData, id);
-        if(node) {
-            node.content = content; 
-            // Note: In a real large app, we wouldn't store content in tree memory, but fetch on demand.
-            // For search performance in this size, it's okay.
-        }
+        if(node) node.content = content; 
 
         try {
             await db.collection('notes').doc(id).set({
@@ -355,16 +379,14 @@
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             });
             console.log("Note saved.");
-            // Also save structure in case title changed
             saveStructureToDB();
         } catch(e) { console.error("Note save failed", e); }
     }
 
-    // --- 5. INITIAL DATA SEEDER (The PDF Data) ---
     async function initializeWithPDFData() {
         if(!confirm("This will OVERWRITE your existing sidebar structure. Continue?")) return;
         
-        // The parsed PDF data
+        // Initial Data Structure
         const initialData = [
             { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
                 { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
@@ -401,10 +423,10 @@
         vaultData = initialData;
         await saveStructureToDB();
         renderTree(vaultData, document.getElementById('file-tree'));
-        alert("Database initialized with PDF Curriculum!");
+        alert("Database initialized!");
     }
 
-    // --- 6. RENDERER ---
+    // --- 5. RENDERER ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
         nodes.forEach(node => {
@@ -431,7 +453,7 @@
                 if (e.target.closest('.ctrl-btn')) return; 
                 if (node.type === 'folder') {
                     node.isOpen = !node.isOpen;
-                    saveStructureToDB(); // Save open state preference
+                    saveStructureToDB(); 
                     renderTree(vaultData, document.getElementById('file-tree'));
                 } else {
                     openNote(node);
@@ -449,7 +471,7 @@
         });
     }
 
-    // --- 7. LOGIC ---
+    // --- 6. LOGIC ---
     function findNode(nodes, id) {
         for(let node of nodes) {
             if(node.id === id) return node;
@@ -498,8 +520,6 @@
         saveStructureToDB();
         renderTree(vaultData, document.getElementById('file-tree'));
         
-        // Also remove note content from DB if it was a file
-        // (Optional optimization: db.collection('notes').doc(id).delete())
         if(currentNoteId === id) {
             document.getElementById('editor').innerHTML = '';
             document.getElementById('note-title').value = '';
@@ -521,7 +541,7 @@
     async function openNote(node) {
         currentNoteId = node.id;
         document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
-        renderTree(vaultData, document.getElementById('file-tree')); // simpler refresh
+        renderTree(vaultData, document.getElementById('file-tree')); 
         
         document.getElementById('breadcrumbs').innerText = getBreadcrumbs(vaultData, node.id) || "Vault";
         document.getElementById('note-title').value = node.title;
@@ -529,18 +549,16 @@
         
         if(window.innerWidth <= 768) toggleSidebar();
 
-        // Fetch Content
         try {
             const doc = await db.collection('notes').doc(node.id).get();
             if(doc.exists) {
                 const data = doc.data();
                 document.getElementById('editor').innerHTML = data.content;
-                node.content = data.content; // update local cache
+                node.content = data.content;
             } else {
                 document.getElementById('editor').innerHTML = node.content || '';
             }
         } catch(e) {
-            console.error("Fetch failed", e);
             document.getElementById('editor').innerHTML = node.content || '';
         }
     }
@@ -637,7 +655,7 @@
             editor.contentEditable = false;
             titleInput.setAttribute('readonly', true);
             toolbar.classList.remove('visible');
-            if(currentNoteId) saveNoteContent(currentNoteId); // Trigger save on exit
+            if(currentNoteId) saveNoteContent(currentNoteId);
         }
     }
 
