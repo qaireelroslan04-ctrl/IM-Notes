@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IM Obsidian V9 (Enhanced)</title>
+    <title>IM Notes</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -13,13 +13,13 @@
 
     <style>
         :root {
-            /* Obsidian-like Theme */
+            /* Theme Variables */
             --bg-1: #1e1e1e;       
             --bg-2: #252526;       
             --bg-3: #2d2d2d;       
             --bg-search: #333;
             --text-main: #e0e0e0;
-            --text-muted: #858585;
+            --text-muted: #9ca3af;
             --accent: #7f6df2;     
             --accent-hover: #6a5acd;
             --border: #333333;
@@ -60,11 +60,29 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--border);
-            font-weight: 700;
-            font-size: 0.95rem;
-            color: var(--text-main);
             background: var(--bg-2);
         }
+
+        .app-branding {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        /* Status Dot */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #333; /* Default/Loading */
+            transition: background-color 0.3s;
+        }
+        .status-dot.connected { background-color: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.4); }
+        .status-dot.disconnected { background-color: #ef4444; }
 
         .sidebar-actions button {
             background: none; border: none; color: var(--text-muted);
@@ -80,27 +98,46 @@
         }
         .search-input:focus { border-color: var(--accent); }
 
+        /* Tree Styles */
         .file-tree { flex: 1; overflow-y: auto; padding: 5px 0 20px 0; }
 
         .tree-item {
-            display: flex; align-items: center; padding: 5px 8px 5px 20px;
-            cursor: pointer; font-size: 0.85rem; color: var(--text-muted);
-            border-left: 2px solid transparent; position: relative;
+            display: flex; align-items: center; padding: 6px 8px 6px 20px;
+            cursor: pointer; position: relative;
+            border-left: 2px solid transparent;
+            transition: background 0.1s;
         }
-        .tree-item:hover { background-color: var(--bg-3); color: var(--text-main); }
+        .tree-item:hover { background-color: var(--bg-3); }
         .tree-item.active { background-color: rgba(127,109,242,0.1); color: #fff; border-left-color: var(--accent); }
 
-        .folder-content { display: none; margin-left: 12px; border-left: 1px solid #333; }
+        /* Typography for Types */
+        .tree-label { margin-left: 6px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .type-folder {
+            font-weight: 600;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+        
+        .type-file {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .tree-item.active .type-file { color: #fff; }
+
+        .folder-content { display: none; margin-left: 10px; border-left: 1px solid #333; }
         .folder-content.show { display: block; }
         
         .arrow { 
-            width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center;
-            margin-right: 6px; font-size: 0.7rem; transition: transform 0.2s; 
+            width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; transition: transform 0.2s; color: var(--text-muted); opacity: 0.7;
         }
         .arrow.open { transform: rotate(90deg); }
 
         .node-controls { display: none; margin-left: auto; gap: 4px; }
         .tree-item:hover .node-controls { display: flex; }
+        
         .ctrl-btn {
             width: 20px; height: 20px; border-radius: 3px; border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 10px;
@@ -199,7 +236,10 @@
 
 <aside id="app-sidebar">
     <div class="sidebar-header">
-        <span id="connection-status" style="color:#22c55e">● Firebase Connected</span>
+        <div class="app-branding">
+            <div id="connection-indicator" class="status-dot" title="Connecting..."></div>
+            <span>IM Notes</span>
+        </div>
         <div class="sidebar-actions">
             <button onclick="toggleAllFolders(false)" title="Collapse All">-</button>
         </div>
@@ -326,7 +366,6 @@
                 } else {
                     // Regular Text: Insert Tab Character (Visual Tab)
                     if (!document.execCommand('insertText', false, '\t')) {
-                        // Fallback for browsers that don't support insertText well
                         const selection = window.getSelection();
                         const range = selection.getRangeAt(0);
                         const tabNode = document.createTextNode("\u00a0\u00a0\u00a0\u00a0");
@@ -343,8 +382,12 @@
 
     // --- 4. DB FUNCTIONS ---
     async function loadStructureFromDB() {
+        const dot = document.getElementById('connection-indicator');
         try {
             const doc = await db.collection('config').doc('treeStructure').get();
+            dot.classList.add('connected');
+            dot.title = "Connected";
+            
             if (doc.exists) {
                 vaultData = doc.data().tree;
                 renderTree(vaultData, document.getElementById('file-tree'));
@@ -355,8 +398,8 @@
             }
         } catch (error) {
             console.error("Error loading tree:", error);
-            document.getElementById('connection-status').style.color = 'red';
-            document.getElementById('connection-status').innerText = '● Connection Failed';
+            dot.classList.add('disconnected');
+            dot.title = "Connection Failed";
         }
     }
 
@@ -386,7 +429,6 @@
     async function initializeWithPDFData() {
         if(!confirm("This will OVERWRITE your existing sidebar structure. Continue?")) return;
         
-        // Initial Data Structure
         const initialData = [
             { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
                 { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
@@ -433,13 +475,17 @@
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
             
-            const icon = node.type === 'folder' 
-                ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span> 📁` 
-                : `<span style="width:14px; display:inline-block"></span> 📄`;
+            // Icon logic: Folders get an arrow, files get space. No emojis.
+            const arrow = node.type === 'folder' 
+                ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span>` 
+                : `<span style="width:12px; display:inline-block"></span>`;
+
+            // Class for font differentiation
+            const typeClass = node.type === 'folder' ? 'type-folder' : 'type-file';
 
             itemDiv.innerHTML = `
                 <div style="display:flex; align-items:center; flex:1; padding-left:${depth * 12}px">
-                    ${icon} <span style="margin-left:6px; font-weight:${node.type==='folder'?'600':'400'}">${node.title}</span>
+                    ${arrow} <span class="tree-label ${typeClass}">${node.title}</span>
                 </div>
                 <div class="node-controls">
                     ${node.type==='folder' ? `<button class="ctrl-btn" onclick="addFile('${node.id}', event)" title="New File">＋</button>` : ''}
