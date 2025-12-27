@@ -35,7 +35,6 @@
             
             --sidebar-width: 300px;
             --header-height: 60px;
-            --radius: 12px;
             
             /* Apple-like smoothness */
             --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -54,7 +53,7 @@
             --header-bg: rgba(255, 255, 255, 0.85);
         }
 
-        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; user-select: none; }
         
         body {
             margin: 0; padding: 0;
@@ -72,55 +71,42 @@
             width: var(--sidebar-width);
             background-color: var(--bg-sidebar);
             border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 50;
+            display: flex; flex-direction: column; flex-shrink: 0; z-index: 50;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
 
         .sidebar-header {
-            height: var(--header-height);
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--bg-sidebar);
+            height: var(--header-height); padding: 0 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--border-color); background: var(--bg-sidebar);
         }
 
-        .app-branding {
-            display: flex; align-items: center; gap: 10px;
-            font-weight: 700; font-size: 1rem; color: var(--text-main);
-        }
-
-        /* Status Dot */
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background-color: var(--text-muted);
-            transition: var(--transition-smooth);
-        }
+        .app-branding { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); transition: var(--transition-smooth); }
         .status-dot.connected { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
         .status-dot.disconnected { background-color: var(--danger); }
 
-        .sidebar-search { padding: 16px; border-bottom: 1px solid var(--border-color); }
+        .sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
         .search-input {
             width: 100%; background-color: var(--bg-input); border: 1px solid transparent;
-            padding: 10px 12px; border-radius: 8px; color: var(--text-main); font-size: 0.9rem;
+            padding: 8px 12px; border-radius: 8px; color: var(--text-main); font-size: 0.9rem;
             transition: var(--transition-smooth);
         }
-        .search-input:focus { border-color: var(--accent-color); background: var(--bg-card); }
+        .search-input:focus { border-color: var(--accent-color); background: var(--bg-card); user-select: text; }
 
-        .file-tree { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .file-tree { flex: 1; overflow-y: auto; padding: 10px 0; padding-bottom: 80px; }
         
         .tree-item {
             display: flex; align-items: center; padding: 8px 16px 8px 12px;
-            cursor: pointer; position: relative; margin: 2px 8px; border-radius: 6px;
-            transition: var(--transition-smooth);
-            color: var(--text-muted);
+            cursor: pointer; position: relative; margin: 1px 0;
+            transition: background-color 0.2s; color: var(--text-muted);
+            border-left: 2px solid transparent;
         }
         .tree-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
-        .tree-item.active { background-color: var(--bg-input); color: var(--accent-color); font-weight: 600; }
+        .tree-item.active { background-color: var(--bg-input); color: var(--accent-color); font-weight: 600; border-left-color: var(--accent-color); }
+        .tree-item.selected { background-color: rgba(99, 102, 241, 0.15); }
         
         .tree-label { margin-left: 8px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; }
         .type-folder { font-weight: 600; color: var(--text-main); }
@@ -128,160 +114,119 @@
         .arrow { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: transform 0.2s; color: var(--text-muted); }
         .arrow.open { transform: rotate(90deg); }
 
-        .node-controls { display: none; gap: 6px; }
-        .tree-item:hover .node-controls { display: flex; }
-        
-        .ctrl-btn {
-            width: 20px; height: 20px; border-radius: 4px; border: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; font-size: 10px;
-            background: var(--bg-input); color: var(--text-muted);
+        /* CHECKBOX FOR MULTI-SELECT */
+        .select-checkbox {
+            width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--text-muted);
+            margin-right: 10px; display: none; align-items: center; justify-content: center;
             transition: 0.2s;
         }
-        .ctrl-btn:hover { background: var(--accent-color); color: white; }
-        .ctrl-btn.del:hover { background: var(--danger); }
+        .selection-mode .select-checkbox { display: flex; }
+        .tree-item.selected .select-checkbox { background: var(--accent-color); border-color: var(--accent-color); }
+        .tree-item.selected .select-checkbox::after { content: '✓'; font-size: 12px; color: white; font-weight: 800; }
+
+        /* CONTEXT MENU */
+        .context-menu {
+            position: fixed; background: var(--bg-sidebar); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 6px; z-index: 200;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none; min-width: 180px;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .context-item {
+            padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 10px; color: var(--text-main); transition: 0.2s;
+        }
+        .context-item:hover { background: var(--bg-hover); }
+        .context-item.danger { color: var(--danger); }
+        .context-item svg { width: 16px; height: 16px; fill: currentColor; opacity: 0.7; }
+
+        /* FLOATING SELECTION BAR */
+        .selection-bar {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: var(--header-bg); border-top: 1px solid var(--border-color);
+            padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+            backdrop-filter: blur(12px); z-index: 60;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .selection-bar.visible { transform: translateY(0); }
+        .btn-sm { 
+            padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); 
+            background: var(--bg-card); color: var(--text-main); font-size: 0.85rem; cursor: pointer; font-weight: 600;
+        }
+
+        /* MOVE MODAL */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 300; display: none; align-items: center; justify-content: center;
+        }
+        .modal {
+            background: var(--bg-sidebar); border: 1px solid var(--border-color);
+            border-radius: 16px; width: 90%; max-width: 400px; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; max-height: 80vh;
+        }
+        .modal-header { padding: 16px; border-bottom: 1px solid var(--border-color); font-weight: 700; text-align: center; }
+        .modal-body { padding: 10px; overflow-y: auto; flex: 1; }
+        .folder-picker-item { padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+        .folder-picker-item:hover { background: var(--bg-hover); }
 
         /* --- MAIN AREA --- */
         main {
             flex: 1; display: flex; flex-direction: column;
-            background-color: var(--bg-body); position: relative;
-            overflow: hidden;
+            background-color: var(--bg-body); position: relative; overflow: hidden;
         }
 
         header.main-header {
             height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
             padding: 0 24px; border-bottom: 1px solid var(--border-color);
-            background: var(--header-bg);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            z-index: 40;
+            background: var(--header-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 40;
         }
 
         .header-title { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
-
         .toolbar-group { display: flex; align-items: center; gap: 12px; }
 
         .icon-btn {
             background: none; border: 1px solid var(--border-color); color: var(--text-main);
             width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            transition: var(--transition-smooth);
+            display: flex; align-items: center; justify-content: center; transition: var(--transition-smooth);
         }
         .icon-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
         .icon-btn.active { color: var(--accent-color); border-color: var(--accent-color); background: rgba(99, 102, 241, 0.1); }
         .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-        /* EDITOR TOOLBAR (Glassmorphism) */
+        /* EDITOR */
         .editor-toolbar {
             display: none; align-items: center; gap: 6px; padding: 10px 24px;
             background: var(--header-bg); border-bottom: 1px solid var(--border-color);
-            overflow-x: auto; white-space: nowrap;
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            position: sticky; top: 0; z-index: 30;
-            animation: slideDown 0.3s ease-out;
+            overflow-x: auto; white-space: nowrap; backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 30; animation: slideDown 0.3s ease-out;
         }
         @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
         .editor-toolbar.visible { display: flex; }
 
         .fmt-btn {
             background: transparent; border: none; color: var(--text-muted);
             cursor: pointer; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;
-            transition: 0.2s;
         }
         .fmt-btn:hover { background: var(--bg-hover); color: var(--text-main); }
 
-        /* EDITOR CONTENT */
         .editor-scroll { flex: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
         .editor-container { max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
-
         .breadcrumbs { font-size: 0.8rem; color: var(--accent-color); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.1); display: inline-block; padding: 4px 8px; border-radius: 4px; }
         
         .note-title-input {
             width: 100%; background: transparent; border: none; color: var(--text-main);
-            font-size: 2.5rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 30px;
-            line-height: 1.2;
+            font-size: 2.5rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 30px; line-height: 1.2; user-select: text;
         }
-
-        .note-content { 
-            font-size: 1.1rem; line-height: 1.7; color: var(--text-main); min-height: 60vh; tab-size: 4;
-        }
-        .note-content:empty:before { content: 'Start writing or paste an image...'; color: var(--text-muted); opacity: 0.5; }
-
-        /* Editor Typography Matches Surgical App */
-        .note-content h1, .note-content h2 { color: var(--text-main); margin-top: 1.5em; font-weight: 800; }
-        .note-content h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; color: var(--accent-color); }
-        .note-content blockquote { border-left: 4px solid var(--accent-color); margin: 1.5em 0; padding: 12px 20px; background: var(--bg-hover); border-radius: 0 8px 8px 0; color: var(--text-muted); }
-        .note-content img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin: 10px 0; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .note-content a { color: var(--accent-color); text-decoration: underline; }
-        .note-content ul, .note-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+        .note-content { font-size: 1.1rem; line-height: 1.7; color: var(--text-main); min-height: 60vh; user-select: text; }
+        .note-content:empty:before { content: 'Start writing...'; color: var(--text-muted); opacity: 0.5; }
         
-        /* Dropdown */
-        .dropdown { position: relative; }
-        .dropdown-content {
-            display: none; position: absolute; right: 0; top: 120%;
-            background-color: var(--bg-sidebar); min-width: 220px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); z-index: 100;
-            border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;
-            animation: fadeIn 0.2s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-content button {
-            color: var(--text-main); padding: 12px 16px; text-decoration: none;
-            display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
-            font-size: 0.9rem; transition: 0.2s;
-        }
-        .dropdown-content button:hover { background-color: var(--bg-hover); }
-        .dropdown.show .dropdown-content { display: block; }
-
-        /* --- SEARCH RESULTS STYLING --- */
-        .search-results-container {
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .search-result-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .search-result-item:hover {
-            background-color: var(--bg-hover);
-        }
-
-        .result-path {
-            font-size: 0.7rem;
-            color: var(--accent-color);
-            margin-bottom: 4px;
-            opacity: 0.8;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .result-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 4px;
-        }
-
-        .result-snippet {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            line-height: 1.4;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        /* Highlight style */
-        .result-snippet mark, .result-title mark {
-            background-color: rgba(99, 102, 241, 0.3);
-            color: #fff;
-            padding: 0 2px;
-            border-radius: 2px;
-        }
+        /* SEARCH STYLES */
+        .search-results-container { padding: 0; display: flex; flex-direction: column; }
+        .search-result-item { padding: 12px 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
+        .search-result-item:hover { background-color: var(--bg-hover); }
+        .result-path { font-size: 0.7rem; color: var(--accent-color); margin-bottom: 4px; opacity: 0.8; font-family: 'JetBrains Mono', monospace; }
+        .result-title { font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
+        .result-snippet { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .result-snippet mark, .result-title mark { background-color: rgba(99, 102, 241, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
 
         /* Mobile */
         .mobile-hamburger { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
@@ -302,15 +247,25 @@
 
 <div id="backdrop" class="backdrop" onclick="toggleSidebar(false)"></div>
 
+<div id="context-menu" class="context-menu"></div>
+
+<div id="move-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">Move Selection To...</div>
+        <div class="modal-body" id="move-list"></div>
+        <div style="padding:16px; text-align:right; border-top:1px solid var(--border-color);">
+            <button class="btn-sm" onclick="document.getElementById('move-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <aside id="app-sidebar">
     <div class="sidebar-header">
         <div class="app-branding">
             <div id="connection-indicator" class="status-dot" title="Connecting..."></div>
             <span>IM Notes Pro</span>
         </div>
-        <div style="display:flex; gap:5px;">
-             <button class="ctrl-btn" onclick="toggleAllFolders(false)" title="Collapse All" style="width:28px; height:28px; font-size:14px;">−</button>
-        </div>
+        <button class="fmt-btn" onclick="toggleAllFolders(false)" style="font-size:1.2rem;">−</button>
     </div>
     
     <div class="sidebar-search">
@@ -319,6 +274,15 @@
 
     <div id="file-tree" class="file-tree">
         <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.9rem;">Connecting to Database...</div>
+    </div>
+
+    <div id="selection-bar" class="selection-bar">
+        <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);"><span id="sel-count">0</span> Selected</span>
+        <div style="display:flex; gap:8px;">
+            <button class="btn-sm" onclick="openMoveModal()">Move</button>
+            <button class="btn-sm" onclick="deleteSelected()" style="color:var(--danger); border-color:var(--danger);">Delete</button>
+            <button class="btn-sm" onclick="exitSelectionMode()">Done</button>
+        </div>
     </div>
 </aside>
 
@@ -378,7 +342,7 @@
 </main>
 
 <script>
-    // --- 1. FIREBASE SETUP ---
+    // --- 1. FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyBd9E9VkE7bllIN13NYGz801F4Jue_VzVk",
         authDomain: "im-helper-d3a4a.firebaseapp.com",
@@ -397,122 +361,72 @@
     let currentNoteId = null;
     let isEditMode = false;
     let saveTimeout;
+    
+    // Selection & UI State
+    let isSelectionMode = false;
+    let selectedNodes = new Set(); // Stores IDs of selected items
+    let longPressTimer;
 
-    // --- 3. INIT & THEME ---
+    // --- 3. INIT ---
     window.addEventListener('DOMContentLoaded', () => {
         loadStructureFromDB();
-        
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
 
         document.getElementById('search-input').addEventListener('input', handleSearch);
         
-        // --- REAL-TIME DATA SYNC ---
+        // Editor Input Logic
         document.getElementById('editor').addEventListener('input', () => {
              const content = document.getElementById('editor').innerHTML;
-             
-             // 1. Update LOCAL memory instantly (for search)
              if(currentNoteId) {
                  const node = findNode(vaultData, currentNoteId);
                  if(node) node.content = content;
-             }
-
-             // 2. Update DATABASE with debounce (save bandwidth)
-             if(currentNoteId) {
                  clearTimeout(saveTimeout);
                  saveTimeout = setTimeout(() => saveNoteContent(currentNoteId), 1000);
              }
         });
 
-        // Close dropdowns on click outside
+        // Close Context Menu on click
+        window.addEventListener('click', () => {
+            document.getElementById('context-menu').style.display = 'none';
+        });
+
+        // Dropdown Close
         window.onclick = function(event) {
             if (!event.target.closest('.dropdown')) {
                 document.getElementById("settings-dropdown").parentElement.classList.remove('show');
             }
+            if(!event.target.closest('.context-menu')) {
+                document.getElementById('context-menu').style.display = 'none';
+            }
         }
 
-        // Paste Handler for Images
         document.getElementById('editor').addEventListener('paste', handlePaste);
-
-        // Image Upload Handler
         document.getElementById('img-upload').addEventListener('change', handleImageFile);
-
-        // Tab Handler
         document.getElementById('editor').addEventListener('keydown', function(e) {
-            if (e.key === 'Tab') {
-                e.preventDefault();
-                document.execCommand(e.shiftKey ? 'outdent' : 'indent');
-            }
+            if (e.key === 'Tab') { e.preventDefault(); document.execCommand(e.shiftKey ? 'outdent' : 'indent'); }
         });
     });
 
-    function toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('theme', next);
-    }
-
-    // --- 4. DB FUNCTIONS ---
-    async function loadStructureFromDB() {
-        const dot = document.getElementById('connection-indicator');
-        try {
-            const doc = await db.collection('config').doc('treeStructure').get();
-            dot.classList.add('connected');
-            dot.title = "Connected";
-            
-            if (doc.exists) {
-                vaultData = doc.data().tree;
-                renderTree(vaultData, document.getElementById('file-tree'));
-            } else {
-                vaultData = [];
-                renderTree([], document.getElementById('file-tree'));
-            }
-        } catch (error) {
-            console.error("Error loading tree:", error);
-            dot.classList.add('disconnected');
-            document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#ef4444">Connection Failed</div>';
-        }
-    }
-
-    async function saveStructureToDB() {
-        try { await db.collection('config').doc('treeStructure').set({ tree: vaultData }); } 
-        catch(e) { console.error("Save failed", e); }
-    }
-
-    async function saveNoteContent(id) {
-        const content = document.getElementById('editor').innerHTML;
-        const title = document.getElementById('note-title').value;
-        
-        // Ensure local node is sync'd (backup)
-        const node = findNode(vaultData, id);
-        if(node) node.content = content; 
-
-        try {
-            await db.collection('notes').doc(id).set({
-                content: content,
-                title: title,
-                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            console.log("Note saved.");
-            saveStructureToDB(); // Update title if changed
-        } catch(e) { console.error("Note save failed", e); }
-    }
-
-    // --- 5. RENDERER ---
+    // --- 4. TREE RENDERER (Clean, No Inline Buttons) ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
-        container.className = 'file-tree'; // Reset class (remove search mode)
+        container.className = 'file-tree'; // Reset class
 
         if(nodes.length === 0 && depth === 0) {
-             container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">Empty Vault.<br>Initialize via Settings.</div>';
+             container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">Empty Vault.<br>Right-click to create.</div>';
              return;
         }
 
-        nodes.forEach(node => {
+        nodes.forEach((node, index) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
             if (currentNoteId === node.id) itemDiv.classList.add('active');
+            if (selectedNodes.has(node.id)) itemDiv.classList.add('selected');
+            
+            // Checkbox logic for Selection Mode
+            if (isSelectionMode) document.getElementById('app-sidebar').classList.add('selection-mode');
+            else document.getElementById('app-sidebar').classList.remove('selection-mode');
             
             const arrow = node.type === 'folder' 
                 ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span>` 
@@ -521,25 +435,43 @@
             const typeClass = node.type === 'folder' ? 'type-folder' : 'type-file';
 
             itemDiv.innerHTML = `
-                <div style="display:flex; align-items:center; flex:1; padding-left:${depth * 12}px">
-                    ${arrow} <span class="tree-label ${typeClass}">${node.title}</span>
-                </div>
-                <div class="node-controls">
-                    ${node.type==='folder' ? `<button class="ctrl-btn" onclick="addFile('${node.id}', event)" title="New File">＋</button>` : ''}
-                    ${node.type==='folder' ? `<button class="ctrl-btn" onclick="addFolder('${node.id}', event)" title="New Folder">🗂</button>` : ''}
-                    <button class="ctrl-btn" onclick="renameNode('${node.id}', event)" title="Rename">✎</button>
-                    <button class="ctrl-btn del" onclick="deleteNode('${node.id}', event)" title="Delete">🗑</button>
+                <div style="padding-left:${depth * 14}px; display:flex; align-items:center; width:100%;">
+                    <div class="select-checkbox"></div>
+                    ${arrow} 
+                    <span class="tree-label ${typeClass}">${node.title}</span>
                 </div>
             `;
 
+            // --- EVENT HANDLERS ---
+
+            // 1. Right Click (Desktop Context Menu)
+            itemDiv.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showContextMenu(e.clientX, e.clientY, node, nodes, index);
+            });
+
+            // 2. Long Press (Mobile Context Menu)
+            itemDiv.addEventListener('touchstart', (e) => {
+                longPressTimer = setTimeout(() => {
+                    showContextMenu(e.touches[0].clientX, e.touches[0].clientY, node, nodes, index);
+                }, 600);
+            });
+            itemDiv.addEventListener('touchend', () => clearTimeout(longPressTimer));
+            itemDiv.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+
+            // 3. Left Click (Open/Select)
             itemDiv.onclick = (e) => {
-                if (e.target.closest('.ctrl-btn')) return; 
-                if (node.type === 'folder') {
-                    node.isOpen = !node.isOpen;
-                    saveStructureToDB(); 
-                    renderTree(vaultData, document.getElementById('file-tree'));
+                if (isSelectionMode) {
+                    toggleNodeSelection(node.id);
                 } else {
-                    openNote(node);
+                    if (node.type === 'folder') {
+                        node.isOpen = !node.isOpen;
+                        saveStructureToDB();
+                        renderTree(vaultData, document.getElementById('file-tree'));
+                    } else {
+                        openNote(node);
+                    }
                 }
             };
 
@@ -553,7 +485,166 @@
         });
     }
 
-    // --- 6. LOGIC & UTILS ---
+    // --- 5. CONTEXT MENU & REORDERING ---
+    function showContextMenu(x, y, node, parentArray, index) {
+        if(isSelectionMode) return; // Don't show context menu while selecting
+        
+        const menu = document.getElementById('context-menu');
+        menu.style.display = 'block';
+        
+        // Adjust position to fit screen
+        const menuWidth = 200;
+        const menuHeight = 300;
+        const left = (x + menuWidth > window.innerWidth) ? x - menuWidth : x;
+        const top = (y + menuHeight > window.innerHeight) ? y - menuHeight : y;
+        
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+
+        let html = `
+            <div class="context-item" onclick="enterSelectionMode('${node.id}')">✨ Select</div>
+            <div class="context-item" onclick="renameNode('${node.id}')">✎ Rename</div>
+            ${node.type === 'folder' ? `
+                <div class="context-item" onclick="addFile('${node.id}')">＋ New File</div>
+                <div class="context-item" onclick="addFolder('${node.id}')">🗂 New Folder</div>
+            ` : ''}
+            <div style="height:1px; background:var(--border-color); margin:4px 0;"></div>
+            ${index > 0 ? `<div class="context-item" onclick="reorderNode('${node.id}', -1)">↑ Move Up</div>` : ''}
+            ${index < parentArray.length - 1 ? `<div class="context-item" onclick="reorderNode('${node.id}', 1)">↓ Move Down</div>` : ''}
+            <div style="height:1px; background:var(--border-color); margin:4px 0;"></div>
+            <div class="context-item danger" onclick="deleteNode('${node.id}')">🗑 Delete</div>
+        `;
+        menu.innerHTML = html;
+    }
+
+    function reorderNode(id, direction) {
+        const arr = getParentArray(vaultData, id);
+        if(!arr) return;
+        const index = arr.findIndex(n => n.id === id);
+        if(index === -1) return;
+        
+        const newIndex = index + direction;
+        if(newIndex >= 0 && newIndex < arr.length) {
+            // Swap elements
+            [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+            saveStructureToDB();
+            renderTree(vaultData, document.getElementById('file-tree'));
+        }
+    }
+
+    // --- 6. SELECTION & MASS MOVE LOGIC ---
+    function enterSelectionMode(initialId) {
+        isSelectionMode = true;
+        selectedNodes.clear();
+        if(initialId) selectedNodes.add(initialId);
+        updateSelectionUI();
+    }
+
+    function toggleNodeSelection(id) {
+        if(selectedNodes.has(id)) selectedNodes.delete(id);
+        else selectedNodes.add(id);
+        updateSelectionUI();
+    }
+
+    function updateSelectionUI() {
+        renderTree(vaultData, document.getElementById('file-tree'));
+        const bar = document.getElementById('selection-bar');
+        bar.classList.add('visible');
+        document.getElementById('sel-count').innerText = selectedNodes.size;
+    }
+
+    function exitSelectionMode() {
+        isSelectionMode = false;
+        selectedNodes.clear();
+        document.getElementById('selection-bar').classList.remove('visible');
+        document.getElementById('app-sidebar').classList.remove('selection-mode');
+        renderTree(vaultData, document.getElementById('file-tree'));
+    }
+
+    function openMoveModal() {
+        if(selectedNodes.size === 0) return;
+        const modal = document.getElementById('move-modal');
+        const list = document.getElementById('move-list');
+        list.innerHTML = `<div class="folder-picker-item" onclick="moveSelectedTo('root')">🏠 Root (Main)</div>`;
+        
+        // Flatten folders for the picker (skip folders that are currently selected to avoid moving inside self)
+        function listFolders(nodes, depth=0) {
+            nodes.forEach(n => {
+                if(n.type === 'folder' && !selectedNodes.has(n.id)) { 
+                    const div = document.createElement('div');
+                    div.className = 'folder-picker-item';
+                    div.innerHTML = `<span style="margin-left:${depth*15}px">📁 ${n.title}</span>`;
+                    div.onclick = () => moveSelectedTo(n.id);
+                    list.appendChild(div);
+                    if(n.children) listFolders(n.children, depth+1);
+                }
+            });
+        }
+        listFolders(vaultData);
+        modal.style.display = 'flex';
+    }
+
+    function moveSelectedTo(targetFolderId) {
+        const itemsToMove = [];
+        
+        // Recursive extract function
+        function extract(nodes) {
+            for(let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                if(selectedNodes.has(node.id)) {
+                    itemsToMove.push(node);
+                    nodes.splice(i, 1);
+                } else if(node.children) {
+                    extract(node.children);
+                }
+            }
+        }
+        extract(vaultData);
+
+        // Insert into target
+        if(targetFolderId === 'root') {
+            vaultData.push(...itemsToMove);
+        } else {
+            const target = findNode(vaultData, targetFolderId);
+            if(target) {
+                if(!target.children) target.children = [];
+                target.children.push(...itemsToMove);
+                target.isOpen = true;
+            } else {
+                // Fallback if target not found
+                vaultData.push(...itemsToMove);
+            }
+        }
+
+        saveStructureToDB();
+        document.getElementById('move-modal').style.display = 'none';
+        exitSelectionMode();
+    }
+
+    function deleteSelected() {
+        if(!confirm(`Delete ${selectedNodes.size} items?`)) return;
+        
+        function remove(nodes) {
+            for(let i = nodes.length - 1; i >= 0; i--) {
+                const node = nodes[i];
+                if(selectedNodes.has(node.id)) {
+                    nodes.splice(i, 1);
+                } else if(node.children) {
+                    remove(node.children);
+                }
+            }
+        }
+        remove(vaultData);
+        saveStructureToDB();
+        exitSelectionMode();
+        // Clear editor if current note was deleted
+        if(selectedNodes.has(currentNoteId)) {
+            document.getElementById('editor').innerHTML = '';
+            document.getElementById('note-title').value = '';
+        }
+    }
+
+    // --- 7. HELPER FUNCTIONS ---
     function findNode(nodes, id) {
         for(let node of nodes) {
             if(node.id === id) return node;
@@ -565,32 +656,30 @@
         return null;
     }
 
-    function addFile(parentId, e) {
-        e.stopPropagation();
-        const parent = findNode(vaultData, parentId);
-        const name = prompt("Name of new note:");
-        if(name) {
-            parent.children.push({ id: Date.now().toString(), title: name, type: 'file', content: '' });
-            parent.isOpen = true;
+    function getParentArray(nodes, id) {
+        for(let node of nodes) {
+            if(node.id === id) return nodes; // Found at top level
+            if(node.children) {
+                if(node.children.some(c => c.id === id)) return node.children;
+                let found = getParentArray(node.children, id);
+                if(found) return found;
+            }
+        }
+        return null;
+    }
+
+    function renameNode(id) {
+        const node = findNode(vaultData, id);
+        const newName = prompt("Rename to:", node.title);
+        if(newName) {
+            node.title = newName;
             saveStructureToDB();
             renderTree(vaultData, document.getElementById('file-tree'));
+            if(currentNoteId === id) document.getElementById('note-title').value = newName;
         }
     }
 
-    function addFolder(parentId, e) {
-        e.stopPropagation();
-        const parent = findNode(vaultData, parentId);
-        const name = prompt("Name of new folder:");
-        if(name) {
-            parent.children.push({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
-            parent.isOpen = true;
-            saveStructureToDB();
-            renderTree(vaultData, document.getElementById('file-tree'));
-        }
-    }
-
-    function deleteNode(id, e) {
-        e.stopPropagation();
+    function deleteNode(id) {
         if(!confirm("Delete this item?")) return;
         function remove(nodes) {
             const idx = nodes.findIndex(n => n.id === id);
@@ -603,31 +692,77 @@
         if(currentNoteId === id) {
             document.getElementById('editor').innerHTML = '';
             document.getElementById('note-title').value = '';
-            document.getElementById('breadcrumbs').innerText = 'Vault';
         }
     }
 
-    function renameNode(id, e) {
-        e.stopPropagation();
-        const node = findNode(vaultData, id);
-        const newName = prompt("Rename to:", node.title);
-        if(newName) {
-            node.title = newName;
+    function addFile(parentId) {
+        const parent = findNode(vaultData, parentId);
+        const name = prompt("Name of new note:");
+        if(name) {
+            if(!parent.children) parent.children = [];
+            parent.children.push({ id: Date.now().toString(), title: name, type: 'file', content: '' });
+            parent.isOpen = true;
             saveStructureToDB();
             renderTree(vaultData, document.getElementById('file-tree'));
-            if(currentNoteId === id) document.getElementById('note-title').value = newName;
         }
+    }
+
+    function addFolder(parentId) {
+        const parent = findNode(vaultData, parentId);
+        const name = prompt("Name of new folder:");
+        if(name) {
+            if(!parent.children) parent.children = [];
+            parent.children.push({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
+            parent.isOpen = true;
+            saveStructureToDB();
+            renderTree(vaultData, document.getElementById('file-tree'));
+        }
+    }
+
+    // --- STANDARD APP FUNCTIONS (Data/Auth/Search) ---
+    async function loadStructureFromDB() {
+        const dot = document.getElementById('connection-indicator');
+        try {
+            const doc = await db.collection('config').doc('treeStructure').get();
+            dot.classList.add('connected');
+            if (doc.exists) {
+                vaultData = doc.data().tree;
+                renderTree(vaultData, document.getElementById('file-tree'));
+            } else {
+                vaultData = [];
+                renderTree([], document.getElementById('file-tree'));
+            }
+        } catch (error) {
+            console.error(error);
+            dot.classList.add('disconnected');
+            document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#ef4444">Connection Failed</div>';
+        }
+    }
+
+    async function saveStructureToDB() {
+        try { await db.collection('config').doc('treeStructure').set({ tree: vaultData }); } 
+        catch(e) { console.error("Save failed", e); }
+    }
+
+    async function saveNoteContent(id) {
+        const content = document.getElementById('editor').innerHTML;
+        const title = document.getElementById('note-title').value;
+        const node = findNode(vaultData, id);
+        if(node) node.content = content; 
+        try {
+            await db.collection('notes').doc(id).set({
+                content: content, title: title, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            saveStructureToDB();
+        } catch(e) { console.error(e); }
     }
 
     async function openNote(node) {
         currentNoteId = node.id;
         renderTree(vaultData, document.getElementById('file-tree')); 
-        
         document.getElementById('breadcrumbs').innerText = getBreadcrumbs(vaultData, node.id) || "Vault";
         document.getElementById('note-title').value = node.title;
         document.getElementById('editor').innerHTML = '<span style="color:var(--text-muted)">Loading...</span>';
-        
-        // Auto-close sidebar on mobile
         if(window.innerWidth <= 768) toggleSidebar(false);
 
         try {
@@ -639,9 +774,7 @@
             } else {
                 document.getElementById('editor').innerHTML = node.content || '';
             }
-        } catch(e) {
-            document.getElementById('editor').innerHTML = node.content || '';
-        }
+        } catch(e) { document.getElementById('editor').innerHTML = node.content || ''; }
     }
 
     function getBreadcrumbs(nodes, id, path = '') {
@@ -655,7 +788,6 @@
         return null;
     }
 
-    // --- 7. EDITING FEATURES ---
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const btn = document.getElementById('mode-toggle');
@@ -678,30 +810,17 @@
         }
     }
 
-    function fmt(cmd, val) {
-        document.execCommand(cmd, false, val);
-        document.getElementById('editor').focus();
-    }
-
-    // Image Upload Logic
-    function triggerImageUpload() {
-        document.getElementById('img-upload').click();
-    }
-
+    function fmt(cmd, val) { document.execCommand(cmd, false, val); document.getElementById('editor').focus(); }
+    function triggerImageUpload() { document.getElementById('img-upload').click(); }
     function handleImageFile(e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(event) {
-                const imgTag = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`;
-                fmt('insertHTML', imgTag);
-            };
+            reader.onload = function(event) { fmt('insertHTML', `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`); };
             reader.readAsDataURL(file);
         }
-        e.target.value = ''; // Reset
+        e.target.value = '';
     }
-
-    // Paste Image Logic
     function handlePaste(e) {
         if (!isEditMode) return;
         const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -710,123 +829,46 @@
                 e.preventDefault();
                 const blob = items[i].getAsFile();
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    const imgTag = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`;
-                    document.execCommand('insertHTML', false, imgTag);
-                };
+                reader.onload = function(event) { document.execCommand('insertHTML', false, `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`); };
                 reader.readAsDataURL(blob);
                 return;
             }
         }
     }
-
-    // YouTube Logic
     function insertVideo() { 
         const url = prompt("Paste YouTube URL:"); 
         if(url) {
-            // Regex to extract video ID from various YouTube URL formats
             const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
             const videoId = match ? match[1] : null;
-            
-            if(videoId) {
-                const embedHtml = `
-                    <div style="position:relative; padding-bottom:56.25%; height:0; margin:1rem 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
-                        <iframe src="https://www.youtube.com/embed/${videoId}" 
-                        style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" 
-                        allowfullscreen></iframe>
-                    </div><p><br></p>`;
-                fmt('insertHTML', embedHtml);
-            } else {
-                alert("Invalid YouTube URL");
-            }
+            if(videoId) fmt('insertHTML', `<div style="position:relative; padding-bottom:56.25%; height:0; margin:1rem 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe></div><p><br></p>`);
+            else alert("Invalid YouTube URL");
         }
     }
-
-    function toggleDropdown() {
-        document.getElementById("settings-dropdown").parentElement.classList.toggle('show');
-    }
-
-    function toggleSidebar(force) {
-        const sb = document.getElementById('app-sidebar');
-        const bd = document.getElementById('backdrop');
-        const isOpen = sb.classList.contains('open');
-        const shouldOpen = force !== undefined ? force : !isOpen;
-        
-        if(shouldOpen) {
-            sb.classList.add('open');
-            bd.classList.add('open');
-        } else {
-            sb.classList.remove('open');
-            bd.classList.remove('open');
-        }
-    }
-
-    function toggleAllFolders(state) {
-        function toggle(nodes) { 
-            nodes.forEach(n => { 
-                if(n.type==='folder') { 
-                    n.isOpen = state; 
-                    if(n.children) toggle(n.children); 
-                } 
-            }); 
-        }
-        toggle(vaultData);
-        renderTree(vaultData, document.getElementById('file-tree'));
-    }
-
-    function focusEditor() { if(isEditMode) document.getElementById('editor').focus(); }
-
-    // --- 8. UPDATED SEARCH LOGIC ---
-    function stripHtml(html) {
-        let tmp = document.createElement("DIV");
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || "";
-    }
-
+    function stripHtml(html) { let tmp = document.createElement("DIV"); tmp.innerHTML = html; return tmp.textContent || tmp.innerText || ""; }
     function handleSearch(e) {
         const query = e.target.value.toLowerCase();
         const tree = document.getElementById('file-tree');
-        
-        if(query.length < 2) {
-            renderTree(vaultData, tree);
-            return;
-        }
-
+        if(query.length < 2) { renderTree(vaultData, tree); return; }
         let results = [];
         function traverse(nodes, path) {
             nodes.forEach(n => {
                 const currentPath = path ? `${path} > ${n.title}` : n.title;
-                
                 if(n.type === 'file') {
-                    // Get matches
                     const plainContent = n.content ? stripHtml(n.content) : "";
-                    const lowerContent = plainContent.toLowerCase();
-                    const lowerTitle = n.title.toLowerCase();
-
-                    if(lowerTitle.includes(query) || lowerContent.includes(query)) {
-                        
-                        // Create Snippet
+                    if(n.title.toLowerCase().includes(query) || plainContent.toLowerCase().includes(query)) {
                         let snippet = "";
-                        const idx = lowerContent.indexOf(query);
-                        
+                        const idx = plainContent.toLowerCase().indexOf(query);
                         if(idx !== -1) {
                             const start = Math.max(0, idx - 30);
                             const end = Math.min(plainContent.length, idx + query.length + 50);
-                            snippet = (start > 0 ? "..." : "") + plainContent.substring(start, end) + (end < plainContent.length ? "..." : "");
-                        } else {
-                            snippet = plainContent.substring(0, 80) + (plainContent.length > 80 ? "..." : "");
-                        }
-
-                        // Highlight
+                            snippet = (start>0?"...":"") + plainContent.substring(start, end) + (end<plainContent.length?"...":"");
+                        } else snippet = plainContent.substring(0, 80) + "...";
+                        
                         const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                        const highlightedSnippet = snippet.replace(regex, "<mark>$1</mark>");
-                        const highlightedTitle = n.title.replace(regex, "<mark>$1</mark>");
-
                         results.push({ 
-                            node: n, 
-                            path: currentPath,
-                            titleHtml: highlightedTitle,
-                            snippetHtml: highlightedSnippet
+                            node: n, path: currentPath, 
+                            titleHtml: n.title.replace(regex, "<mark>$1</mark>"),
+                            snippetHtml: snippet.replace(regex, "<mark>$1</mark>")
                         });
                     }
                 }
@@ -834,52 +876,44 @@
             });
         }
         traverse(vaultData, "");
-
-        tree.innerHTML = '';
-        tree.className = 'search-results-container'; // Apply list styling
-
-        if(results.length === 0) {
-            tree.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No matches found</div>';
-        } else {
-            results.forEach(res => {
-                const div = document.createElement('div');
-                div.className = 'search-result-item';
-                div.innerHTML = `
-                    <div class="result-path">${res.path}</div>
-                    <div class="result-title">${res.titleHtml}</div>
-                    <div class="result-snippet">${res.snippetHtml}</div>
-                `;
-                div.onclick = () => openNote(res.node);
-                tree.appendChild(div);
-            });
-        }
+        tree.innerHTML = ''; tree.className = 'search-results-container';
+        if(results.length === 0) tree.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No matches</div>';
+        else results.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'search-result-item';
+            div.innerHTML = `<div class="result-path">${res.path}</div><div class="result-title">${res.titleHtml}</div><div class="result-snippet">${res.snippetHtml}</div>`;
+            div.onclick = () => openNote(res.node);
+            tree.appendChild(div);
+        });
     }
-
-    // --- 9. DATA EXPORT/IMPORT & INIT ---
+    function toggleTheme() {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+    function toggleSidebar(force) {
+        const sb = document.getElementById('app-sidebar');
+        const bd = document.getElementById('backdrop');
+        const open = force !== undefined ? force : !sb.classList.contains('open');
+        sb.classList.toggle('open', open); bd.classList.toggle('open', open);
+    }
+    function toggleAllFolders(state) {
+        function toggle(nodes) { nodes.forEach(n => { if(n.type==='folder') { n.isOpen = state; if(n.children) toggle(n.children); } }); }
+        toggle(vaultData); renderTree(vaultData, document.getElementById('file-tree'));
+    }
+    function focusEditor() { if(isEditMode) document.getElementById('editor').focus(); }
+    function toggleDropdown() { document.getElementById("settings-dropdown").parentElement.classList.toggle('show'); }
     function initializeWithPDFData() {
-        if(!confirm("Overwrite existing vault structure?")) return;
-        const initialData = [
-            { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
-                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
-                    { id: '1-1-1', title: 'History Taking', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p>' }
-                ]}
-            ]}
-        ];
-        vaultData = initialData;
-        saveStructureToDB();
-        renderTree(vaultData, document.getElementById('file-tree'));
+        if(!confirm("Reset?")) return;
+        vaultData = [{ id: '1', title: 'Main Folder', type: 'folder', isOpen: true, children: [] }];
+        saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
     }
-
     function exportData() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(vaultData));
-        const a = document.createElement('a');
-        a.href = dataStr; a.download = "im_vault_backup.json";
-        a.click();
+        const a = document.createElement('a'); a.href = dataStr; a.download = "im_vault_backup.json"; a.click();
     }
-
     function importData() {
-        const input = document.createElement('input');
-        input.type = 'file';
+        const input = document.createElement('input'); input.type = 'file';
         input.onchange = e => {
             const file = e.target.files[0];
             const reader = new FileReader();
@@ -887,8 +921,7 @@
             reader.onload = readerEvent => {
                 try {
                     vaultData = JSON.parse(readerEvent.target.result);
-                    saveStructureToDB();
-                    renderTree(vaultData, document.getElementById('file-tree'));
+                    saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
                     alert("Import Successful");
                 } catch(err) { alert("Invalid JSON"); }
             }
