@@ -33,8 +33,8 @@
             --danger: #ef4444;
             --header-bg: rgba(9, 9, 11, 0.85);
             
-            --sidebar-width: 300px;
-            --header-height: 60px;
+            --sidebar-width: 280px;
+            --header-height: 56px;
             
             /* Apple-like smoothness */
             --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -82,7 +82,7 @@
             border-bottom: 1px solid var(--border-color); background: var(--bg-sidebar);
         }
 
-        .app-branding { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .app-branding { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.95rem; color: var(--text-main); }
         
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); transition: var(--transition-smooth); }
         .status-dot.connected { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
@@ -91,18 +91,22 @@
         .sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
         .search-input {
             width: 100%; background-color: var(--bg-input); border: 1px solid transparent;
-            padding: 8px 12px; border-radius: 8px; color: var(--text-main); font-size: 0.9rem;
+            padding: 8px 12px; border-radius: 8px; color: var(--text-main); font-size: 0.85rem;
             transition: var(--transition-smooth);
         }
         .search-input:focus { border-color: var(--accent-color); background: var(--bg-card); user-select: text; }
 
-        .file-tree { flex: 1; overflow-y: auto; padding: 10px 0; padding-bottom: 80px; }
+        .file-tree { flex: 1; overflow-y: auto; padding: 8px 0; padding-bottom: 80px; }
         
+        /* FIX: Compact Tree Item Spacing */
         .tree-item {
-            display: flex; align-items: center; padding: 8px 16px 8px 12px;
-            cursor: pointer; position: relative; margin: 1px 0;
+            display: flex; align-items: center; 
+            padding: 6px 12px 6px 12px; /* Reduced vertical padding */
+            cursor: pointer; position: relative; 
+            margin: 0; /* Removed margin */
             transition: background-color 0.2s; color: var(--text-muted);
             border-left: 2px solid transparent;
+            min-height: 32px; /* Set consistent height */
         }
         .tree-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
         .tree-item.active { background-color: var(--bg-input); color: var(--accent-color); font-weight: 600; border-left-color: var(--accent-color); }
@@ -116,13 +120,13 @@
 
         /* CHECKBOX FOR MULTI-SELECT */
         .select-checkbox {
-            width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--text-muted);
+            width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--text-muted);
             margin-right: 10px; display: none; align-items: center; justify-content: center;
             transition: 0.2s;
         }
         .selection-mode .select-checkbox { display: flex; }
         .tree-item.selected .select-checkbox { background: var(--accent-color); border-color: var(--accent-color); }
-        .tree-item.selected .select-checkbox::after { content: '✓'; font-size: 12px; color: white; font-weight: 800; }
+        .tree-item.selected .select-checkbox::after { content: '✓'; font-size: 10px; color: white; font-weight: 800; }
 
         /* CONTEXT MENU */
         .context-menu {
@@ -132,12 +136,11 @@
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         }
         .context-item {
-            padding: 10px 12px; border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
             display: flex; align-items: center; gap: 10px; color: var(--text-main); transition: 0.2s;
         }
         .context-item:hover { background: var(--bg-hover); }
         .context-item.danger { color: var(--danger); }
-        .context-item svg { width: 16px; height: 16px; fill: currentColor; opacity: 0.7; }
 
         /* FLOATING SELECTION BAR */
         .selection-bar {
@@ -150,7 +153,7 @@
         .selection-bar.visible { transform: translateY(0); }
         .btn-sm { 
             padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); 
-            background: var(--bg-card); color: var(--text-main); font-size: 0.85rem; cursor: pointer; font-weight: 600;
+            background: var(--bg-card); color: var(--text-main); font-size: 0.8rem; cursor: pointer; font-weight: 600;
         }
 
         /* MOVE MODAL */
@@ -165,7 +168,7 @@
         }
         .modal-header { padding: 16px; border-bottom: 1px solid var(--border-color); font-weight: 700; text-align: center; }
         .modal-body { padding: 10px; overflow-y: auto; flex: 1; }
-        .folder-picker-item { padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+        .folder-picker-item { padding: 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
         .folder-picker-item:hover { background: var(--bg-hover); }
 
         /* --- MAIN AREA --- */
@@ -174,62 +177,79 @@
             background-color: var(--bg-body); position: relative; overflow: hidden;
         }
 
+        /* FIX: Header Layout */
         header.main-header {
-            height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
-            padding: 0 24px; border-bottom: 1px solid var(--border-color);
-            background: var(--header-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 40;
+            height: var(--header-height); 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; /* Ensures Left and Right are separated */
+            padding: 0 20px; 
+            border-bottom: 1px solid var(--border-color);
+            background: var(--header-bg); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); 
+            z-index: 40;
         }
 
-        .header-title { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
-        .toolbar-group { display: flex; align-items: center; gap: 12px; }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-title { font-weight: 700; font-size: 1rem; letter-spacing: -0.01em; color: var(--text-main); }
+        
+        .toolbar-group { display: flex; align-items: center; gap: 8px; }
 
         .icon-btn {
-            background: none; border: 1px solid var(--border-color); color: var(--text-main);
-            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            background: none; border: 1px solid transparent; color: var(--text-muted);
+            width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
             display: flex; align-items: center; justify-content: center; transition: var(--transition-smooth);
         }
-        .icon-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
-        .icon-btn.active { color: var(--accent-color); border-color: var(--accent-color); background: rgba(99, 102, 241, 0.1); }
+        .icon-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+        .icon-btn.active { color: var(--accent-color); background: rgba(99, 102, 241, 0.1); }
         .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
 
-        /* EDITOR */
+        /* FIX: Dropdown Positioning */
+        .dropdown { position: relative; }
+        .dropdown-content {
+            display: none; position: absolute; right: 0; top: 100%; margin-top: 8px;
+            background-color: var(--bg-sidebar); min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 100;
+            border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-content button {
+            color: var(--text-main); padding: 12px 16px; text-decoration: none;
+            display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+            font-size: 0.85rem; transition: 0.2s;
+        }
+        .dropdown-content button:hover { background-color: var(--bg-hover); }
+        .dropdown.show .dropdown-content { display: block; }
+
+        /* EDITOR TOOLBAR */
         .editor-toolbar {
-            display: none; align-items: center; gap: 6px; padding: 10px 24px;
+            display: none; align-items: center; gap: 4px; padding: 8px 20px;
             background: var(--header-bg); border-bottom: 1px solid var(--border-color);
             overflow-x: auto; white-space: nowrap; backdrop-filter: blur(12px);
-            position: sticky; top: 0; z-index: 30; animation: slideDown 0.3s ease-out;
+            position: sticky; top: 0; z-index: 30;
         }
-        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .editor-toolbar.visible { display: flex; }
 
         .fmt-btn {
             background: transparent; border: none; color: var(--text-muted);
-            cursor: pointer; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;
+            cursor: pointer; padding: 6px 8px; border-radius: 4px; font-weight: 600; font-size: 0.85rem;
         }
         .fmt-btn:hover { background: var(--bg-hover); color: var(--text-main); }
 
         .editor-scroll { flex: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
         .editor-container { max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
-        .breadcrumbs { font-size: 0.8rem; color: var(--accent-color); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.1); display: inline-block; padding: 4px 8px; border-radius: 4px; }
+        .breadcrumbs { font-size: 0.75rem; color: var(--accent-color); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.1); display: inline-block; padding: 4px 8px; border-radius: 4px; }
         
         .note-title-input {
             width: 100%; background: transparent; border: none; color: var(--text-main);
-            font-size: 2.5rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 30px; line-height: 1.2; user-select: text;
+            font-size: 2.2rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 20px; line-height: 1.2; user-select: text;
         }
-        .note-content { font-size: 1.1rem; line-height: 1.7; color: var(--text-main); min-height: 60vh; user-select: text; }
+        .note-content { font-size: 1.05rem; line-height: 1.7; color: var(--text-main); min-height: 60vh; user-select: text; }
         .note-content:empty:before { content: 'Start writing...'; color: var(--text-muted); opacity: 0.5; }
         
-        /* SEARCH STYLES */
-        .search-results-container { padding: 0; display: flex; flex-direction: column; }
-        .search-result-item { padding: 12px 16px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
-        .search-result-item:hover { background-color: var(--bg-hover); }
-        .result-path { font-size: 0.7rem; color: var(--accent-color); margin-bottom: 4px; opacity: 0.8; font-family: 'JetBrains Mono', monospace; }
-        .result-title { font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-bottom: 4px; }
-        .result-snippet { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .result-snippet mark, .result-title mark { background-color: rgba(99, 102, 241, 0.3); color: #fff; padding: 0 2px; border-radius: 2px; }
-
         /* Mobile */
-        .mobile-hamburger { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
+        .mobile-hamburger { display: none; background: none; border: none; color: var(--text-main); font-size: 1.4rem; cursor: pointer; padding: 0; margin-right: 8px; }
         .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 45; }
 
         @media (max-width: 768px) {
@@ -239,7 +259,7 @@
             .mobile-hamburger { display: block; }
             header.main-header { padding: 0 16px; }
             .editor-scroll { padding: 20px 16px; }
-            .note-title-input { font-size: 2rem; }
+            .note-title-input { font-size: 1.8rem; }
         }
     </style>
 </head>
@@ -265,19 +285,19 @@
             <div id="connection-indicator" class="status-dot" title="Connecting..."></div>
             <span>IM Notes Pro</span>
         </div>
-        <button class="fmt-btn" onclick="toggleAllFolders(false)" style="font-size:1.2rem;">−</button>
+        <button class="fmt-btn" onclick="toggleAllFolders(false)" style="font-size:1.1rem; padding:4px 8px;">−</button>
     </div>
     
     <div class="sidebar-search">
-        <input type="text" class="search-input" placeholder="Search notes..." id="search-input">
+        <input type="text" class="search-input" placeholder="Search..." id="search-input">
     </div>
 
     <div id="file-tree" class="file-tree">
-        <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.9rem;">Connecting to Database...</div>
+        <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.85rem;">Connecting...</div>
     </div>
 
     <div id="selection-bar" class="selection-bar">
-        <span style="font-size:0.9rem; font-weight:600; color:var(--text-main);"><span id="sel-count">0</span> Selected</span>
+        <span style="font-size:0.85rem; font-weight:600; color:var(--text-main);"><span id="sel-count">0</span> Selected</span>
         <div style="display:flex; gap:8px;">
             <button class="btn-sm" onclick="openMoveModal()">Move</button>
             <button class="btn-sm" onclick="deleteSelected()" style="color:var(--danger); border-color:var(--danger);">Delete</button>
@@ -289,7 +309,7 @@
 <main id="app-main">
     
     <header class="main-header">
-        <div class="toolbar-group">
+        <div class="header-left">
             <button class="mobile-hamburger" onclick="toggleSidebar(true)">☰</button>
             <span class="header-title">Workspace</span>
         </div>
@@ -320,12 +340,12 @@
         <button class="fmt-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
         <button class="fmt-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
         <button class="fmt-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
-        <div style="width:1px; background:var(--border-color); height:20px; margin:0 5px;"></div>
+        <div style="width:1px; background:var(--border-color); height:16px; margin:0 5px;"></div>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
         <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
         <button class="fmt-btn" onclick="fmt('insertOrderedList')" title="Numbered List">1. List</button>
-        <div style="width:1px; background:var(--border-color); height:20px; margin:0 5px;"></div>
+        <div style="width:1px; background:var(--border-color); height:16px; margin:0 5px;"></div>
         <input type="file" id="img-upload" hidden accept="image/*">
         <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Image</button>
         <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Video</button>
@@ -408,7 +428,7 @@
         });
     });
 
-    // --- 4. TREE RENDERER (Clean, No Inline Buttons) ---
+    // --- 4. TREE RENDERER (Clean, Compact, No Inline Buttons) ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
         container.className = 'file-tree'; // Reset class
