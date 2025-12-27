@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>IM Notes Pro</title>
     
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#09090b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -16,7 +22,7 @@
             /* Colors: Dark Mode (Default) */
             --bg-body: #000000;
             --bg-sidebar: #09090b;
-            --bg-card: #09090b; /* Deep black for contrast */
+            --bg-card: #09090b;
             --bg-input: #27272a;
             --bg-hover: #27272a;
             --border-color: #27272a;
@@ -226,7 +232,7 @@
         .dropdown-content button:hover { background-color: var(--bg-hover); }
         .dropdown.show .dropdown-content { display: block; }
 
-        /* --- SEARCH RESULTS STYLING (NEW) --- */
+        /* --- SEARCH RESULTS STYLING --- */
         .search-results-container {
             padding: 0;
             display: flex;
@@ -269,9 +275,9 @@
             overflow: hidden;
         }
 
-        /* Highlight style for the search term */
+        /* Highlight style */
         .result-snippet mark, .result-title mark {
-            background-color: rgba(99, 102, 241, 0.3); /* Accent color transparent */
+            background-color: rgba(99, 102, 241, 0.3);
             color: #fff;
             padding: 0 2px;
             border-radius: 2px;
