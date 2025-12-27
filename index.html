@@ -440,7 +440,8 @@
     // --- 4. TREE RENDERER (Ultra Compact) ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
-        container.className = 'file-tree'; 
+        // FIX: Only apply 'file-tree' class to root container to avoid nested padding issues
+        if(depth === 0) container.className = 'file-tree'; 
 
         if(nodes.length === 0 && depth === 0) {
              container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">Empty Vault.<br>Click ＋ to create.</div>';
