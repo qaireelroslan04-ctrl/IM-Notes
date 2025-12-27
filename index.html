@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IM Notes</title>
+    <title>IM Notes Pro</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -13,44 +13,64 @@
 
     <style>
         :root {
-            /* Theme Variables */
-            --bg-1: #1e1e1e;       
-            --bg-2: #252526;       
-            --bg-3: #2d2d2d;       
-            --bg-search: #333;
-            --text-main: #e0e0e0;
-            --text-muted: #9ca3af;
-            --accent: #7f6df2;     
-            --accent-hover: #6a5acd;
-            --border: #333333;
-            --danger: #e06c75;
+            /* Colors: Dark Mode (Default) */
+            --bg-body: #000000;
+            --bg-sidebar: #09090b;
+            --bg-card: #09090b; /* Deep black for contrast */
+            --bg-input: #27272a;
+            --bg-hover: #27272a;
+            --border-color: #27272a;
+            --text-main: #e2e8f0;
+            --text-muted: #a1a1aa;
+            --accent-color: #6366f1; /* Indigo */
+            --accent-hover: #4f46e5;
+            --danger: #ef4444;
+            --header-bg: rgba(9, 9, 11, 0.85);
             
-            --sidebar-width: 320px;
-            --header-height: 50px;
+            --sidebar-width: 300px;
+            --header-height: 60px;
+            --radius: 12px;
+            
+            /* Apple-like smoothness */
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        * { box-sizing: border-box; outline: none; }
+        [data-theme="light"] {
+            --bg-body: #f3f4f6;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #f3f4f6;
+            --bg-hover: #f3f4f6;
+            --border-color: #e5e7eb;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --accent-color: #4f46e5;
+            --header-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
         
         body {
             margin: 0; padding: 0;
-            background-color: var(--bg-1);
+            background-color: var(--bg-body);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             height: 100vh;
             display: flex;
             overflow: hidden;
+            transition: background-color 0.3s;
         }
 
         /* --- SIDEBAR --- */
-        #app-sidebar {
+        aside {
             width: var(--sidebar-width);
-            background-color: var(--bg-2);
-            border-right: 1px solid var(--border);
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
-            transition: transform 0.2s ease;
             z-index: 50;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .sidebar-header {
@@ -59,219 +79,216 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg-2);
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-sidebar);
         }
 
         .app-branding {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 700;
-            font-size: 1rem;
-            color: var(--text-main);
-            letter-spacing: -0.5px;
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 1rem; color: var(--text-main);
         }
 
         /* Status Dot */
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #333; /* Default/Loading */
-            transition: background-color 0.3s;
+            width: 8px; height: 8px; border-radius: 50%;
+            background-color: var(--text-muted);
+            transition: var(--transition-smooth);
         }
-        .status-dot.connected { background-color: #22c55e; box-shadow: 0 0 5px rgba(34, 197, 94, 0.4); }
-        .status-dot.disconnected { background-color: #ef4444; }
+        .status-dot.connected { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+        .status-dot.disconnected { background-color: var(--danger); }
 
-        .sidebar-actions button {
-            background: none; border: none; color: var(--text-muted);
-            cursor: pointer; padding: 4px; border-radius: 4px;
-            font-size: 1rem; transition: 0.2s;
-        }
-        .sidebar-actions button:hover { color: #fff; background: var(--bg-3); }
-
-        .search-container { padding: 10px 16px; background: var(--bg-2); }
+        .sidebar-search { padding: 16px; border-bottom: 1px solid var(--border-color); }
         .search-input {
-            width: 100%; background-color: #181818; border: 1px solid #333;
-            padding: 8px 12px; border-radius: 6px; color: var(--text-main); font-size: 0.85rem;
+            width: 100%; background-color: var(--bg-input); border: 1px solid transparent;
+            padding: 10px 12px; border-radius: 8px; color: var(--text-main); font-size: 0.9rem;
+            transition: var(--transition-smooth);
         }
-        .search-input:focus { border-color: var(--accent); }
+        .search-input:focus { border-color: var(--accent-color); background: var(--bg-card); }
 
-        /* Tree Styles */
-        .file-tree { flex: 1; overflow-y: auto; padding: 5px 0 20px 0; }
-
+        .file-tree { flex: 1; overflow-y: auto; padding: 10px 0; }
+        
         .tree-item {
-            display: flex; align-items: center; padding: 6px 8px 6px 20px;
-            cursor: pointer; position: relative;
-            border-left: 2px solid transparent;
-            transition: background 0.1s;
-        }
-        .tree-item:hover { background-color: var(--bg-3); }
-        .tree-item.active { background-color: rgba(127,109,242,0.1); color: #fff; border-left-color: var(--accent); }
-
-        /* Typography for Types */
-        .tree-label { margin-left: 6px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
-        .type-folder {
-            font-weight: 600;
-            color: #fff;
-            font-size: 0.9rem;
-        }
-        
-        .type-file {
-            font-weight: 400;
+            display: flex; align-items: center; padding: 8px 16px 8px 12px;
+            cursor: pointer; position: relative; margin: 2px 8px; border-radius: 6px;
+            transition: var(--transition-smooth);
             color: var(--text-muted);
-            font-size: 0.85rem;
         }
-        .tree-item.active .type-file { color: #fff; }
-
-        .folder-content { display: none; margin-left: 10px; border-left: 1px solid #333; }
-        .folder-content.show { display: block; }
+        .tree-item:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        .tree-item.active { background-color: var(--bg-input); color: var(--accent-color); font-weight: 600; }
         
-        .arrow { 
-            width: 12px; height: 12px; display: inline-flex; align-items: center; justify-content: center;
-            font-size: 0.65rem; transition: transform 0.2s; color: var(--text-muted); opacity: 0.7;
-        }
+        .tree-label { margin-left: 8px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.9rem; }
+        .type-folder { font-weight: 600; color: var(--text-main); }
+        
+        .arrow { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: transform 0.2s; color: var(--text-muted); }
         .arrow.open { transform: rotate(90deg); }
 
-        .node-controls { display: none; margin-left: auto; gap: 4px; }
+        .node-controls { display: none; gap: 6px; }
         .tree-item:hover .node-controls { display: flex; }
         
         .ctrl-btn {
-            width: 20px; height: 20px; border-radius: 3px; border: none; cursor: pointer;
+            width: 20px; height: 20px; border-radius: 4px; border: none; cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 10px;
-            background: #444; color: #ccc;
+            background: var(--bg-input); color: var(--text-muted);
+            transition: 0.2s;
         }
-        .ctrl-btn:hover { background: var(--accent); color: white; }
+        .ctrl-btn:hover { background: var(--accent-color); color: white; }
         .ctrl-btn.del:hover { background: var(--danger); }
 
-        /* Search Results */
-        .search-results { display: none; flex-direction: column; padding: 0; }
-        .search-result-item { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
-        .search-result-item:hover { background: var(--bg-3); }
-        .result-path { font-size: 0.7rem; color: var(--accent); margin-bottom: 4px; }
-        .result-title { font-weight: 600; font-size: 0.9rem; color: #fff; margin-bottom: 4px; }
-        .result-snippet { font-size: 0.8rem; color: #aaa; font-style: italic; }
-
         /* --- MAIN AREA --- */
-        #app-main {
+        main {
             flex: 1; display: flex; flex-direction: column;
-            background-color: var(--bg-1); position: relative;
+            background-color: var(--bg-body); position: relative;
+            overflow: hidden;
         }
 
-        .main-header {
+        header.main-header {
             height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg-1);
+            padding: 0 24px; border-bottom: 1px solid var(--border-color);
+            background: var(--header-bg);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            z-index: 40;
         }
+
+        .header-title { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
+
+        .toolbar-group { display: flex; align-items: center; gap: 12px; }
+
+        .icon-btn {
+            background: none; border: 1px solid var(--border-color); color: var(--text-main);
+            width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--transition-smooth);
+        }
+        .icon-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+        .icon-btn.active { color: var(--accent-color); border-color: var(--accent-color); background: rgba(99, 102, 241, 0.1); }
+        .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        /* EDITOR TOOLBAR (Glassmorphism) */
+        .editor-toolbar {
+            display: none; align-items: center; gap: 6px; padding: 10px 24px;
+            background: var(--header-bg); border-bottom: 1px solid var(--border-color);
+            overflow-x: auto; white-space: nowrap;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 30;
+            animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .editor-toolbar.visible { display: flex; }
+
+        .fmt-btn {
+            background: transparent; border: none; color: var(--text-muted);
+            cursor: pointer; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .fmt-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+
+        /* EDITOR CONTENT */
+        .editor-scroll { flex: 1; overflow-y: auto; padding: 40px; scroll-behavior: smooth; }
+        .editor-container { max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
+
+        .breadcrumbs { font-size: 0.8rem; color: var(--accent-color); margin-bottom: 16px; font-family: 'JetBrains Mono', monospace; background: rgba(99, 102, 241, 0.1); display: inline-block; padding: 4px 8px; border-radius: 4px; }
+        
+        .note-title-input {
+            width: 100%; background: transparent; border: none; color: var(--text-main);
+            font-size: 2.5rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 30px;
+            line-height: 1.2;
+        }
+
+        .note-content { 
+            font-size: 1.1rem; line-height: 1.7; color: var(--text-main); min-height: 60vh; tab-size: 4;
+        }
+        .note-content:empty:before { content: 'Start writing or paste an image...'; color: var(--text-muted); opacity: 0.5; }
+
+        /* Editor Typography Matches Surgical App */
+        .note-content h1, .note-content h2 { color: var(--text-main); margin-top: 1.5em; font-weight: 800; }
+        .note-content h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; color: var(--accent-color); }
+        .note-content blockquote { border-left: 4px solid var(--accent-color); margin: 1.5em 0; padding: 12px 20px; background: var(--bg-hover); border-radius: 0 8px 8px 0; color: var(--text-muted); }
+        .note-content img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border-color); margin: 10px 0; display: block; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .note-content a { color: var(--accent-color); text-decoration: underline; }
+        .note-content ul, .note-content ol { padding-left: 1.5rem; margin-bottom: 1rem; }
         
         /* Dropdown */
-        .dropdown { position: relative; display: inline-block; }
+        .dropdown { position: relative; }
         .dropdown-content {
-            display: none; position: absolute; right: 0; top: 100%;
-            background-color: var(--bg-2); min-width: 220px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.5); z-index: 200;
-            border: 1px solid var(--border); border-radius: 6px;
+            display: none; position: absolute; right: 0; top: 120%;
+            background-color: var(--bg-sidebar); min-width: 220px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); z-index: 100;
+            border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden;
+            animation: fadeIn 0.2s ease;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .dropdown-content button {
             color: var(--text-main); padding: 12px 16px; text-decoration: none;
             display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
-            font-size: 0.85rem;
+            font-size: 0.9rem; transition: 0.2s;
         }
-        .dropdown-content button:hover { background-color: var(--bg-3); }
+        .dropdown-content button:hover { background-color: var(--bg-hover); }
         .dropdown.show .dropdown-content { display: block; }
 
-        .mode-toggle {
-            background: var(--bg-2); border: 1px solid var(--border); color: var(--text-muted);
-            padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer; margin-right: 10px;
-        }
-        .mode-toggle.active { color: var(--accent); border-color: var(--accent); background: rgba(127,109,242,0.1); }
+        /* Mobile */
+        .mobile-hamburger { display: none; background: none; border: none; color: var(--text-main); font-size: 1.5rem; cursor: pointer; }
+        .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 45; }
 
-        /* Editor Toolbar */
-        .editor-toolbar {
-            display: none; align-items: center; gap: 8px; padding: 10px 20px;
-            background: var(--bg-1); border-bottom: 1px solid var(--border);
-            overflow-x: auto; white-space: nowrap;
-        }
-        .editor-toolbar.visible { display: flex; }
-        
-        .fmt-btn {
-            background: transparent; border: 1px solid transparent; color: var(--text-muted);
-            cursor: pointer; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.9rem;
-            min-width: 30px; text-align: center;
-        }
-        .fmt-btn:hover { background: var(--bg-3); color: #fff; }
-        .fmt-btn.active { color: var(--accent); }
-
-        .editor-scroll { flex: 1; overflow-y: auto; padding: 0 20px 50px 20px; }
-        .editor-container { max-width: 800px; margin: 0 auto; padding-top: 40px; }
-
-        .breadcrumbs { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
-        .note-title-input {
-            width: 100%; background: transparent; border: none; color: var(--text-main);
-            font-size: 2.2rem; font-weight: 800; font-family: 'Inter', sans-serif; margin-bottom: 20px;
-        }
-
-        .note-content { font-size: 1.1rem; line-height: 1.7; color: #d4d4d4; min-height: 60vh; tab-size: 4; }
-        .note-content:empty:before { content: 'Start writing...'; color: #444; }
-
-        .note-content h1, .note-content h2, .note-content h3 { color: #fff; margin-top: 1.5em; }
-        .note-content h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; color: var(--accent); }
-        .note-content blockquote { border-left: 3px solid var(--accent); margin: 1em 0; padding-left: 1em; color: var(--text-muted); background: rgba(127,109,242,0.05); padding: 10px; border-radius: 0 4px 4px 0; }
-        .note-content img { max-width: 100%; border-radius: 4px; border: 1px solid var(--border); }
-        .note-content a { color: var(--accent); text-decoration: underline; }
-        .note-content hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
-
-        .mobile-hamburger { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
-        
         @media (max-width: 768px) {
-            #app-sidebar { position: fixed; height: 100%; transform: translateX(-100%); }
-            #app-sidebar.open { transform: translateX(0); }
+            aside { position: fixed; height: 100%; transform: translateX(-100%); width: 85%; box-shadow: 10px 0 30px rgba(0,0,0,0.3); }
+            aside.open { transform: translateX(0); }
+            .backdrop.open { display: block; }
             .mobile-hamburger { display: block; }
-            .main-header { padding: 0 10px; }
+            header.main-header { padding: 0 16px; }
+            .editor-scroll { padding: 20px 16px; }
+            .note-title-input { font-size: 2rem; }
         }
     </style>
 </head>
 <body>
 
+<div id="backdrop" class="backdrop" onclick="toggleSidebar(false)"></div>
+
 <aside id="app-sidebar">
     <div class="sidebar-header">
         <div class="app-branding">
             <div id="connection-indicator" class="status-dot" title="Connecting..."></div>
-            <span>IM Notes</span>
+            <span>IM Notes Pro</span>
         </div>
-        <div class="sidebar-actions">
-            <button onclick="toggleAllFolders(false)" title="Collapse All">-</button>
+        <div style="display:flex; gap:5px;">
+             <button class="ctrl-btn" onclick="toggleAllFolders(false)" title="Collapse All" style="width:28px; height:28px; font-size:14px;">−</button>
         </div>
     </div>
     
-    <div class="search-container">
+    <div class="sidebar-search">
         <input type="text" class="search-input" placeholder="Search notes..." id="search-input">
     </div>
 
     <div id="file-tree" class="file-tree">
-        <div style="padding:20px; text-align:center; color:#666">Loading database...</div>
+        <div style="padding:20px; text-align:center; color:var(--text-muted); font-size:0.9rem;">Connecting to Database...</div>
     </div>
-
-    <div id="search-results-list" class="search-results file-tree"></div>
 </aside>
 
-<section id="app-main">
+<main id="app-main">
     
     <header class="main-header">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <button class="mobile-hamburger" onclick="toggleSidebar()">☰</button>
-            <span style="font-weight:600; font-size:0.9rem;">Workspace</span>
+        <div class="toolbar-group">
+            <button class="mobile-hamburger" onclick="toggleSidebar(true)">☰</button>
+            <span class="header-title">Workspace</span>
         </div>
 
-        <div style="display:flex; align-items:center;">
-            <button id="mode-toggle" class="mode-toggle" onclick="toggleEditMode()">Read Only</button>
+        <div class="toolbar-group">
+            <button id="mode-toggle" class="icon-btn" onclick="toggleEditMode()" title="Toggle Read/Edit">
+                <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+            </button>
             
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">
+                <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+            </button>
+
             <div class="dropdown">
-                <button class="icon-btn" onclick="toggleDropdown()" style="background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">⋮</button>
+                <button class="icon-btn" onclick="toggleDropdown()">
+                    <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </button>
                 <div id="settings-dropdown" class="dropdown-content">
-                    <button onclick="initializeWithPDFData()" style="color: #7f6df2; font-weight:bold;">Initialize/Reset DB with PDF Data</button>
-                    <button onclick="exportData()">Export Data (JSON)</button>
+                    <button onclick="initializeWithPDFData()" style="color: var(--accent-color); font-weight:600;">Initialize / Reset DB</button>
+                    <button onclick="exportData()">Export JSON</button>
                     <button onclick="importData()">Import JSON</button>
                 </div>
             </div>
@@ -279,34 +296,29 @@
     </header>
 
     <div id="editor-toolbar" class="editor-toolbar">
-        <button class="fmt-btn" onclick="fmt('undo')" title="Undo">↺</button>
-        <button class="fmt-btn" onclick="fmt('redo')" title="Redo">↻</button>
-        <div style="width:1px; background:#444; height:20px;"></div>
-        <button class="fmt-btn" onclick="fmt('bold')" title="Bold">B</button>
-        <button class="fmt-btn" onclick="fmt('italic')" title="Italic">I</button>
-        <button class="fmt-btn" onclick="fmt('underline')" title="Underline">U</button>
-        <button class="fmt-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
-        <div style="width:1px; background:#444; height:20px;"></div>
+        <button class="fmt-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
+        <button class="fmt-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
+        <button class="fmt-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+        <div style="width:1px; background:var(--border-color); height:20px; margin:0 5px;"></div>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
         <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
         <button class="fmt-btn" onclick="fmt('insertOrderedList')" title="Numbered List">1. List</button>
-        <button class="fmt-btn" onclick="fmt('insertHorizontalRule')" title="Line Divider">—</button>
-        <div style="width:1px; background:#444; height:20px;"></div>
-        <button class="fmt-btn" onclick="insertLink()" title="Link">Link</button>
-        <button class="fmt-btn" onclick="insertImage()" title="Image">Image</button>
-        <button class="fmt-btn" onclick="insertVideo()" title="YouTube">Video</button>
+        <div style="width:1px; background:var(--border-color); height:20px; margin:0 5px;"></div>
+        <input type="file" id="img-upload" hidden accept="image/*">
+        <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Image</button>
+        <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Video</button>
     </div>
 
     <div class="editor-scroll" onclick="focusEditor()">
         <div class="editor-container">
-            <div id="breadcrumbs" class="breadcrumbs">Start</div>
-            <input type="text" id="note-title" class="note-title-input" placeholder="No Note Selected" readonly>
+            <div id="breadcrumbs" class="breadcrumbs">Vault</div>
+            <input type="text" id="note-title" class="note-title-input" placeholder="Select a note..." readonly>
             <div id="editor" class="note-content" contenteditable="false"></div>
         </div>
     </div>
 
-</section>
+</main>
 
 <script>
     // --- 1. FIREBASE SETUP ---
@@ -322,7 +334,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-    const analytics = firebase.analytics();
 
     // --- 2. STATE ---
     let vaultData = [];
@@ -330,14 +341,16 @@
     let isEditMode = false;
     let saveTimeout;
 
-    // --- 3. INIT ---
+    // --- 3. INIT & THEME ---
     window.addEventListener('DOMContentLoaded', () => {
         loadStructureFromDB();
+        
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
 
-        // Search listener
         document.getElementById('search-input').addEventListener('input', handleSearch);
         
-        // Autosave listener
+        // Autosave
         document.getElementById('editor').addEventListener('input', () => {
              if(currentNoteId) {
                  clearTimeout(saveTimeout);
@@ -345,40 +358,34 @@
              }
         });
 
-        // Click outside closes dropdown
+        // Close dropdowns on click outside
         window.onclick = function(event) {
-            if (!event.target.matches('.icon-btn')) {
-                const dropdowns = document.getElementsByClassName("dropdown-content");
-                for (let i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].style.display === "block") dropdowns[i].style.display = "none";
-                }
+            if (!event.target.closest('.dropdown')) {
+                document.getElementById("settings-dropdown").parentElement.classList.remove('show');
             }
         }
 
-        // --- TAB KEY HANDLER ---
+        // Paste Handler for Images
+        document.getElementById('editor').addEventListener('paste', handlePaste);
+
+        // Image Upload Handler
+        document.getElementById('img-upload').addEventListener('change', handleImageFile);
+
+        // Tab Handler
         document.getElementById('editor').addEventListener('keydown', function(e) {
             if (e.key === 'Tab') {
                 e.preventDefault();
-                // Check if in a list
-                if (document.queryCommandState('insertUnorderedList') || document.queryCommandState('insertOrderedList')) {
-                    // List: Indent / Outdent
-                    document.execCommand(e.shiftKey ? 'outdent' : 'indent');
-                } else {
-                    // Regular Text: Insert Tab Character (Visual Tab)
-                    if (!document.execCommand('insertText', false, '\t')) {
-                        const selection = window.getSelection();
-                        const range = selection.getRangeAt(0);
-                        const tabNode = document.createTextNode("\u00a0\u00a0\u00a0\u00a0");
-                        range.insertNode(tabNode);
-                        range.setStartAfter(tabNode);
-                        range.setEndAfter(tabNode); 
-                        selection.removeAllRanges();
-                        selection.addRange(range);
-                    }
-                }
+                document.execCommand(e.shiftKey ? 'outdent' : 'indent');
             }
         });
     });
+
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
 
     // --- 4. DB FUNCTIONS ---
     async function loadStructureFromDB() {
@@ -394,12 +401,11 @@
             } else {
                 vaultData = [];
                 renderTree([], document.getElementById('file-tree'));
-                document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#888">Database Empty.<br><br>Click ⋮ > Initialize with PDF Data</div>';
             }
         } catch (error) {
             console.error("Error loading tree:", error);
             dot.classList.add('disconnected');
-            dot.title = "Connection Failed";
+            document.getElementById('file-tree').innerHTML = '<div style="padding:20px; text-align:center; color:#ef4444">Connection Failed</div>';
         }
     }
 
@@ -411,7 +417,6 @@
     async function saveNoteContent(id) {
         const content = document.getElementById('editor').innerHTML;
         const title = document.getElementById('note-title').value;
-        
         const node = findNode(vaultData, id);
         if(node) node.content = content; 
 
@@ -422,65 +427,27 @@
                 lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
             });
             console.log("Note saved.");
-            saveStructureToDB();
+            saveStructureToDB(); // Update title if changed
         } catch(e) { console.error("Note save failed", e); }
-    }
-
-    async function initializeWithPDFData() {
-        if(!confirm("This will OVERWRITE your existing sidebar structure. Continue?")) return;
-        
-        const initialData = [
-            { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
-                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
-                    { id: '1-1-1', title: 'History Taking', type: 'folder', children: [
-                        { id: '1-1-1-a', title: 'Symptoms', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p><h2>Chest Pain</h2><p>SOCRATES method...</p>' },
-                        { id: '1-1-1-b', title: 'Risk Factors', type: 'file', content: '<ul><li>Hypertension</li><li>Diabetes</li><li>Smoking</li></ul>' }
-                    ]},
-                    { id: '1-1-2', title: 'Physical Exam', type: 'file', content: 'Hands, Pulse, JVP, Apex Beat...' }
-                ]},
-                { id: '1-2', title: 'Hypertension', type: 'file', content: 'Definitions, Secondary Causes (Renal, Endocrine)...' }
-            ]},
-            { id: '2', title: '2. Respiratory', type: 'folder', children: [
-                { id: '2-1', title: 'Asthma', type: 'folder', children: [
-                    { id: '2-1-1', title: 'Diagnosis', type: 'file', content: 'Spirometry reversibility...' },
-                    { id: '2-1-2', title: 'Management', type: 'file', content: 'Acute: O2, Nebs, Steroids. Chronic: Step-up therapy.' }
-                ]},
-                { id: '2-2', title: 'COPD', type: 'file', content: 'Smoking Hx, Irreversible obstruction...' }
-            ]},
-            { id: '3', title: '3. Renal', type: 'folder', children: [
-                { id: '3-1', title: 'AKI', type: 'file', content: 'Prerenal, Intrinsic, Postrenal...' }
-            ]},
-            { id: '4', title: '4. Infectious Disease', type: 'folder', children: [
-                { id: '4-1', title: 'General', type: 'file', content: 'PUO, Sepsis 6...' },
-                { id: '4-2', title: 'Vector Borne', type: 'file', content: 'Dengue, Malaria...' }
-            ]},
-            { id: '5', title: '5. GIT & Liver', type: 'folder', children: [
-                { id: '5-1', title: 'Hepatology', type: 'file', content: 'Cirrhosis, Portal HTN...' }
-            ]},
-            { id: '6', title: '6. Neurology', type: 'folder', children: [
-                { id: '6-1', title: 'Stroke', type: 'file', content: 'Bamford Classification...' }
-            ]}
-        ];
-
-        vaultData = initialData;
-        await saveStructureToDB();
-        renderTree(vaultData, document.getElementById('file-tree'));
-        alert("Database initialized!");
     }
 
     // --- 5. RENDERER ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
+        if(nodes.length === 0 && depth === 0) {
+             container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">Empty Vault.<br>Initialize via Settings.</div>';
+             return;
+        }
+
         nodes.forEach(node => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
+            if (currentNoteId === node.id) itemDiv.classList.add('active');
             
-            // Icon logic: Folders get an arrow, files get space. No emojis.
             const arrow = node.type === 'folder' 
                 ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span>` 
-                : `<span style="width:12px; display:inline-block"></span>`;
+                : `<span style="width:16px; display:inline-block"></span>`;
 
-            // Class for font differentiation
             const typeClass = node.type === 'folder' ? 'type-folder' : 'type-file';
 
             itemDiv.innerHTML = `
@@ -506,7 +473,6 @@
                 }
             };
 
-            if (currentNoteId === node.id) itemDiv.classList.add('active');
             container.appendChild(itemDiv);
 
             if (node.type === 'folder' && node.isOpen && node.children) {
@@ -517,7 +483,7 @@
         });
     }
 
-    // --- 6. LOGIC ---
+    // --- 6. LOGIC & UTILS ---
     function findNode(nodes, id) {
         for(let node of nodes) {
             if(node.id === id) return node;
@@ -556,7 +522,6 @@
     function deleteNode(id, e) {
         e.stopPropagation();
         if(!confirm("Delete this item?")) return;
-        
         function remove(nodes) {
             const idx = nodes.findIndex(n => n.id === id);
             if(idx > -1) { nodes.splice(idx, 1); return true; }
@@ -565,10 +530,10 @@
         remove(vaultData);
         saveStructureToDB();
         renderTree(vaultData, document.getElementById('file-tree'));
-        
         if(currentNoteId === id) {
             document.getElementById('editor').innerHTML = '';
             document.getElementById('note-title').value = '';
+            document.getElementById('breadcrumbs').innerText = 'Vault';
         }
     }
 
@@ -586,14 +551,14 @@
 
     async function openNote(node) {
         currentNoteId = node.id;
-        document.querySelectorAll('.tree-item').forEach(el => el.classList.remove('active'));
         renderTree(vaultData, document.getElementById('file-tree')); 
         
         document.getElementById('breadcrumbs').innerText = getBreadcrumbs(vaultData, node.id) || "Vault";
         document.getElementById('note-title').value = node.title;
-        document.getElementById('editor').innerHTML = '<span style="color:#666">Loading...</span>';
+        document.getElementById('editor').innerHTML = '<span style="color:var(--text-muted)">Loading...</span>';
         
-        if(window.innerWidth <= 768) toggleSidebar();
+        // Auto-close sidebar on mobile
+        if(window.innerWidth <= 768) toggleSidebar(false);
 
         try {
             const doc = await db.collection('notes').doc(node.id).get();
@@ -620,68 +585,7 @@
         return null;
     }
 
-    function handleSearch(e) {
-        const query = e.target.value.toLowerCase();
-        const tree = document.getElementById('file-tree');
-        const resultsList = document.getElementById('search-results-list');
-
-        if(query.length < 2) {
-            tree.style.display = 'block';
-            resultsList.style.display = 'none';
-            return;
-        }
-
-        tree.style.display = 'none';
-        resultsList.style.display = 'flex';
-        resultsList.innerHTML = '';
-
-        let results = [];
-        function traverse(nodes, path) {
-            nodes.forEach(n => {
-                const currentPath = path ? `${path} > ${n.title}` : n.title;
-                if(n.type === 'file') {
-                    const titleMatch = n.title.toLowerCase().includes(query);
-                    const contentMatch = n.content && n.content.toLowerCase().includes(query);
-                    
-                    if(titleMatch || contentMatch) {
-                        let snippet = "";
-                        if(contentMatch) {
-                            const idx = n.content.toLowerCase().indexOf(query);
-                            const start = Math.max(0, idx - 20);
-                            const end = Math.min(n.content.length, idx + 50);
-                            snippet = "..." + n.content.substring(start, end).replace(/<[^>]*>/g, '') + "...";
-                        }
-                        results.push({ node: n, path: currentPath, snippet });
-                    }
-                }
-                if(n.children) traverse(n.children, currentPath);
-            });
-        }
-
-        traverse(vaultData, "");
-
-        if(results.length === 0) {
-            resultsList.innerHTML = '<div style="padding:20px; color:#666; text-align:center;">No results found</div>';
-        } else {
-            results.forEach(res => {
-                const div = document.createElement('div');
-                div.className = 'search-result-item';
-                div.innerHTML = `
-                    <div class="result-path">${res.path}</div>
-                    <div class="result-title">${res.node.title}</div>
-                    ${res.snippet ? `<div class="result-snippet">${res.snippet}</div>` : ''}
-                `;
-                div.onclick = () => {
-                    openNote(res.node);
-                    document.getElementById('search-input').value = '';
-                    tree.style.display = 'block';
-                    resultsList.style.display = 'none';
-                };
-                resultsList.appendChild(div);
-            });
-        }
-    }
-
+    // --- 7. EDITING FEATURES ---
     function toggleEditMode() {
         isEditMode = !isEditMode;
         const btn = document.getElementById('mode-toggle');
@@ -690,13 +594,12 @@
         const titleInput = document.getElementById('note-title');
 
         if(isEditMode) {
-            btn.innerText = 'Editing...';
             btn.classList.add('active');
             editor.contentEditable = true;
             titleInput.removeAttribute('readonly');
             toolbar.classList.add('visible');
+            editor.focus();
         } else {
-            btn.innerText = 'Read Only';
             btn.classList.remove('active');
             editor.contentEditable = false;
             titleInput.setAttribute('readonly', true);
@@ -709,19 +612,153 @@
         document.execCommand(cmd, false, val);
         document.getElementById('editor').focus();
     }
-    function insertLink() { const url = prompt("URL:"); if(url) fmt('createLink', url); }
-    function insertImage() { const url = prompt("Image URL:"); if(url) fmt('insertHTML', `<img src="${url}">`); }
+
+    // Image Upload Logic
+    function triggerImageUpload() {
+        document.getElementById('img-upload').click();
+    }
+
+    function handleImageFile(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imgTag = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`;
+                fmt('insertHTML', imgTag);
+            };
+            reader.readAsDataURL(file);
+        }
+        e.target.value = ''; // Reset
+    }
+
+    // Paste Image Logic
+    function handlePaste(e) {
+        if (!isEditMode) return;
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imgTag = `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`;
+                    document.execCommand('insertHTML', false, imgTag);
+                };
+                reader.readAsDataURL(blob);
+                return;
+            }
+        }
+    }
+
+    // YouTube Logic
     function insertVideo() { 
-        const url = prompt("YouTube URL:"); 
+        const url = prompt("Paste YouTube URL:"); 
         if(url) {
-            const videoId = url.split('v=')[1]?.split('&')[0];
-            if(videoId) fmt('insertHTML', `<div style="position:relative; padding-bottom:56.25%; height:0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe></div><p><br></p>`);
+            // Regex to extract video ID from various YouTube URL formats
+            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
+            const videoId = match ? match[1] : null;
+            
+            if(videoId) {
+                const embedHtml = `
+                    <div style="position:relative; padding-bottom:56.25%; height:0; margin:1rem 0; border-radius:12px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+                        <iframe src="https://www.youtube.com/embed/${videoId}" 
+                        style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" 
+                        allowfullscreen></iframe>
+                    </div><p><br></p>`;
+                fmt('insertHTML', embedHtml);
+            } else {
+                alert("Invalid YouTube URL");
+            }
         }
     }
 
     function toggleDropdown() {
-        const d = document.getElementById("settings-dropdown");
-        d.style.display = d.style.display === "block" ? "none" : "block";
+        document.getElementById("settings-dropdown").parentElement.classList.toggle('show');
+    }
+
+    function toggleSidebar(force) {
+        const sb = document.getElementById('app-sidebar');
+        const bd = document.getElementById('backdrop');
+        const isOpen = sb.classList.contains('open');
+        const shouldOpen = force !== undefined ? force : !isOpen;
+        
+        if(shouldOpen) {
+            sb.classList.add('open');
+            bd.classList.add('open');
+        } else {
+            sb.classList.remove('open');
+            bd.classList.remove('open');
+        }
+    }
+
+    function toggleAllFolders(state) {
+        function toggle(nodes) { 
+            nodes.forEach(n => { 
+                if(n.type==='folder') { 
+                    n.isOpen = state; 
+                    if(n.children) toggle(n.children); 
+                } 
+            }); 
+        }
+        toggle(vaultData);
+        renderTree(vaultData, document.getElementById('file-tree'));
+    }
+
+    function focusEditor() { if(isEditMode) document.getElementById('editor').focus(); }
+
+    function handleSearch(e) {
+        const query = e.target.value.toLowerCase();
+        const tree = document.getElementById('file-tree');
+        
+        if(query.length < 2) {
+            renderTree(vaultData, tree);
+            return;
+        }
+
+        let results = [];
+        function traverse(nodes, path) {
+            nodes.forEach(n => {
+                const currentPath = path ? `${path} > ${n.title}` : n.title;
+                if(n.type === 'file') {
+                    if(n.title.toLowerCase().includes(query) || (n.content && n.content.toLowerCase().includes(query))) {
+                        results.push({ node: n, path: currentPath });
+                    }
+                }
+                if(n.children) traverse(n.children, currentPath);
+            });
+        }
+        traverse(vaultData, "");
+
+        tree.innerHTML = '';
+        if(results.length === 0) tree.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">No matches found</div>';
+        
+        results.forEach(res => {
+            const div = document.createElement('div');
+            div.className = 'tree-item';
+            div.innerHTML = `
+                <div style="display:flex; flex-direction:column; padding:8px;">
+                    <span style="font-weight:600; color:var(--text-main)">${res.node.title}</span>
+                    <span style="font-size:0.75rem; color:var(--accent-color)">${res.path}</span>
+                </div>
+            `;
+            div.onclick = () => openNote(res.node);
+            tree.appendChild(div);
+        });
+    }
+
+    // --- 8. DATA EXPORT/IMPORT & INIT ---
+    function initializeWithPDFData() {
+        if(!confirm("Overwrite existing vault structure?")) return;
+        const initialData = [
+            { id: '1', title: '1. Cardiovascular', type: 'folder', isOpen: true, children: [
+                { id: '1-1', title: 'History & Exam', type: 'folder', isOpen: false, children: [
+                    { id: '1-1-1', title: 'History Taking', type: 'file', content: '<h2>Grading Effort Intolerance</h2><p>NYHA Classification...</p>' }
+                ]}
+            ]}
+        ];
+        vaultData = initialData;
+        saveStructureToDB();
+        renderTree(vaultData, document.getElementById('file-tree'));
     }
 
     function exportData() {
@@ -749,22 +786,6 @@
         }
         input.click();
     }
-
-    function toggleSidebar() {
-        const sb = document.getElementById('app-sidebar');
-        sb.classList.toggle('open');
-        document.getElementById('backdrop').style.display = sb.classList.contains('open') ? 'block' : 'none';
-    }
-    function closeSidebar() {
-        document.getElementById('app-sidebar').classList.remove('open');
-        document.getElementById('backdrop').style.display = 'none';
-    }
-    function toggleAllFolders(state) {
-        function toggle(nodes) { nodes.forEach(n => { if(n.type==='folder') { n.isOpen = state; if(n.children) toggle(n.children); } }); }
-        toggle(vaultData);
-        renderTree(vaultData, document.getElementById('file-tree'));
-    }
-    function focusEditor() { if(isEditMode) document.getElementById('editor').focus(); }
 </script>
 
 </body>
