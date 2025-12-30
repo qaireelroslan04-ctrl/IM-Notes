@@ -349,15 +349,29 @@
         <button class="fmt-btn" onclick="fmt('bold')" title="Bold"><b>B</b></button>
         <button class="fmt-btn" onclick="fmt('italic')" title="Italic"><i>I</i></button>
         <button class="fmt-btn" onclick="fmt('underline')" title="Underline"><u>U</u></button>
+        <button class="fmt-btn" onclick="fmt('strikeThrough')" title="Strikethrough"><s>S</s></button>
+        
         <div style="width:1px; background:var(--border-color); height:16px; margin:0 5px;"></div>
+        
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H2')" title="Heading 2">H2</button>
         <button class="fmt-btn" onclick="fmt('formatBlock', 'H3')" title="Heading 3">H3</button>
+        <button class="fmt-btn" onclick="fmt('formatBlock', 'blockquote')" title="Quote">❞</button>
+        <button class="fmt-btn" onclick="fmt('formatBlock', 'PRE')" title="Code Block">&lt;/&gt;</button>
+
+        <div style="width:1px; background:var(--border-color); height:16px; margin:0 5px;"></div>
+        
         <button class="fmt-btn" onclick="fmt('insertUnorderedList')" title="Bullet List">• List</button>
         <button class="fmt-btn" onclick="fmt('insertOrderedList')" title="Numbered List">1. List</button>
+        <button class="fmt-btn" onclick="insertChecklist()" title="Checklist">☑ List</button>
+        
         <div style="width:1px; background:var(--border-color); height:16px; margin:0 5px;"></div>
+
+        <button class="fmt-btn" onclick="createLink()" title="Link">🔗</button>
         <input type="file" id="img-upload" hidden accept="image/*">
-        <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Image</button>
-        <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Video</button>
+        <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Img</button>
+        <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Vid</button>
+        <button class="fmt-btn" onclick="insertTable()" title="Insert Table">tbl</button>
+        <button class="fmt-btn" onclick="fmt('insertHorizontalRule')" title="Divider">——</button>
     </div>
 
     <div class="editor-scroll" onclick="focusEditor()">
@@ -531,9 +545,11 @@
         
         menu.style.left = left + 'px'; menu.style.top = top + 'px';
 
+        // ADDED: "Move To..." option below Rename
         let html = `
             <div class="context-item" onclick="enterSelectionMode('${node.id}')">✨ Select</div>
             <div class="context-item" onclick="renameNode('${node.id}')">✎ Rename</div>
+            <div class="context-item" onclick="initiateSingleMove('${node.id}')">➔ Move To...</div>
             ${node.type === 'folder' ? `
                 <div class="context-item" onclick="addFile('${node.id}')">＋ New File</div>
                 <div class="context-item" onclick="addFolder('${node.id}')">🗂 New Folder</div>
@@ -680,18 +696,33 @@
         const name = prompt("Name of new note:");
         if(name) {
             if(!parent.children) parent.children = [];
-            parent.children.push({ id: Date.now().toString(), title: name, type: 'file', content: '' });
+            // CHANGED: push -> unshift (Adds to top)
+            parent.children.unshift({ id: Date.now().toString(), title: name, type: 'file', content: '' });
             parent.isOpen = true; saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
         }
     }
+
     function addFolder(parentId) {
         const parent = findNode(vaultData, parentId);
         const name = prompt("Name of new folder:");
         if(name) {
             if(!parent.children) parent.children = [];
-            parent.children.push({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
+            // CHANGED: push -> unshift (Adds to top)
+            parent.children.unshift({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
             parent.isOpen = true; saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
         }
+    }
+
+    // --- 8. Single Move ---
+
+    function initiateSingleMove(id) {
+        // Clear previous selection and select only this node
+        selectedNodes.clear();
+        selectedNodes.add(id);
+        // Reuse your existing modal logic
+        openMoveModal(); 
+        // Hide context menu
+        document.getElementById('context-menu').style.display = 'none';
     }
 
     // --- STANDARD APP FUNCTIONS ---
@@ -807,6 +838,31 @@
             div.onclick = () => openNote(res.node);
             tree.appendChild(div);
         });
+    }
+    function insertChecklist() {
+        // Inserts a clickable checkbox followed by a space
+        const checkboxHtml = '<input type="checkbox" style="margin-right:8px; vertical-align:middle;">&nbsp;';
+        fmt('insertHTML', checkboxHtml);
+    }
+
+    function createLink() {
+        const url = prompt("Enter Link URL:");
+        if (url) fmt('createLink', url);
+    }
+
+    function insertTable() {
+        const rows = 2; // Default 2x2
+        const cols = 2;
+        let html = '<table style="width:100%; border-collapse: collapse; margin: 10px 0; border: 1px solid var(--border-color);">';
+        for (let i = 0; i < rows; i++) {
+            html += '<tr>';
+            for (let j = 0; j < cols; j++) {
+                html += '<td style="border: 1px solid var(--border-color); padding: 8px;">Cell</td>';
+            }
+            html += '</tr>';
+        }
+        html += '</table><br>'; // Add break so user can type after
+        fmt('insertHTML', html);
     }
     function toggleTheme() {
         const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
