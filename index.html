@@ -51,6 +51,22 @@
             --header-bg: rgba(255, 255, 255, 0.85);
         }
 
+        /* --- DRAG AND DROP VISUALS --- */
+        .tree-item[draggable="true"] {
+            cursor: grab;
+        }
+        .tree-item.dragging {
+            opacity: 0.5;
+            background: var(--bg-input);
+            border: 1px dashed var(--accent-color);
+        }
+        .tree-item.drag-over {
+            border-top: 2px solid var(--accent-color); /* Shows where it will drop */
+            padding-top: 4px;
+        }
+
+        
+
         /* --- GLOBAL RESET & TYPOGRAPHY --- */
         * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
         
@@ -452,46 +468,56 @@
     });
 
     // --- 4. TREE RENDERER (Ultra Compact) ---
+    // --- UPDATED TREE RENDERER (With Drag & Drop) ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
-        // FIX: Only apply 'file-tree' class to root container to avoid nested padding issues
         if(depth === 0) container.className = 'file-tree'; 
-
+    
         if(nodes.length === 0 && depth === 0) {
              container.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted)">Empty Vault.<br>Click ＋ to create.</div>';
              return;
         }
-
+    
         nodes.forEach((node, index) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
+            
+            // 1. ENABLE DRAGGING
+            itemDiv.setAttribute('draggable', 'true');
+            
             if (currentNoteId === node.id) itemDiv.classList.add('active');
             if (selectedNodes.has(node.id)) itemDiv.classList.add('selected');
             
+            // Sidebar styling for selection mode
             if (isSelectionMode) document.getElementById('app-sidebar').classList.add('selection-mode');
             else document.getElementById('app-sidebar').classList.remove('selection-mode');
             
             const arrow = node.type === 'folder' 
                 ? `<span class="arrow ${node.isOpen ? 'open' : ''}">▶</span>` 
                 : `<span style="width:12px; display:inline-block"></span>`;
-
+    
             const typeClass = node.type === 'folder' ? 'type-folder' : 'type-file';
-
+    
             itemDiv.innerHTML = `
-                <div style="padding-left:${depth * 14}px; display:flex; align-items:center; width:100%;">
-                    <div class="select-checkbox"></div>
+                <div style="padding-left:${depth * 14}px; display:flex; align-items:center; width:100%; pointer-events:none;">
+                    <div class="select-checkbox" style="pointer-events:auto;"></div>
                     ${arrow} 
                     <span class="tree-label ${typeClass}">${node.title}</span>
                 </div>
             `;
-
-            // --- EVENT HANDLERS ---
+    
+            // 2. DRAG EVENTS
+            itemDiv.addEventListener('dragstart', (e) => handleDragStart(e, node));
+            itemDiv.addEventListener('dragover', (e) => handleDragOver(e));
+            itemDiv.addEventListener('dragleave', (e) => { e.target.classList.remove('drag-over'); });
+            itemDiv.addEventListener('drop', (e) => handleDrop(e, node));
+    
+            // 3. EXISTING EVENTS (Context Menu, Clicks)
             itemDiv.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault(); e.stopPropagation();
                 showContextMenu(e.clientX, e.clientY, node, nodes, index);
             });
-
+    
             itemDiv.addEventListener('touchstart', (e) => {
                 longPressTimer = setTimeout(() => {
                     showContextMenu(e.touches[0].clientX, e.touches[0].clientY, node, nodes, index);
@@ -499,7 +525,7 @@
             });
             itemDiv.addEventListener('touchend', () => clearTimeout(longPressTimer));
             itemDiv.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-
+    
             itemDiv.onclick = (e) => {
                 if (isSelectionMode) {
                     toggleNodeSelection(node.id);
@@ -513,9 +539,9 @@
                     }
                 }
             };
-
+    
             container.appendChild(itemDiv);
-
+    
             if (node.type === 'folder' && node.isOpen && node.children) {
                 const childrenContainer = document.createElement('div');
                 renderTree(node.children, childrenContainer, depth + 1);
@@ -726,6 +752,72 @@
     }
 
     // --- STANDARD APP FUNCTIONS ---
+
+    // --- DRAG AND DROP LOGIC ---
+
+    let draggedNodeId = null;
+    
+    function handleDragStart(e, node) {
+        draggedNodeId = node.id;
+        e.target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        // Optional: Set a drag image if you want custom styling
+    }
+    
+    function handleDragOver(e) {
+        e.preventDefault(); // Necessary to allow dropping
+        e.dataTransfer.dropEffect = 'move';
+        
+        // Add visual cue
+        const target = e.target.closest('.tree-item');
+        if(target) target.classList.add('drag-over');
+    }
+    
+    function handleDrop(e, targetNode) {
+        e.preventDefault();
+        
+        // Remove visual cue
+        const targetEl = e.target.closest('.tree-item');
+        if(targetEl) targetEl.classList.remove('drag-over');
+        
+        // Safety checks
+        if(!draggedNodeId || draggedNodeId === targetNode.id) return;
+    
+        // 1. Remove node from old location
+        let movedNode = null;
+        function remove(nodes) {
+            const idx = nodes.findIndex(n => n.id === draggedNodeId);
+            if(idx > -1) {
+                movedNode = nodes[idx];
+                nodes.splice(idx, 1);
+                return true;
+            }
+            for(let n of nodes) {
+                if(n.children && remove(n.children)) return true;
+            }
+        }
+        remove(vaultData);
+    
+        // 2. Insert node at new location (Before the target node)
+        if(movedNode) {
+            // Find the array that contains the targetNode
+            const parentArr = getParentArray(vaultData, targetNode.id);
+            if(parentArr) {
+                const targetIdx = parentArr.findIndex(n => n.id === targetNode.id);
+                
+                // Insert at the specific index (This is the reordering magic)
+                parentArr.splice(targetIdx, 0, movedNode);
+                
+                // Save and Rerender
+                saveStructureToDB();
+                renderTree(vaultData, document.getElementById('file-tree'));
+            }
+        }
+        
+        // Reset
+        draggedNodeId = null;
+    }
+    
     async function loadStructureFromDB() {
         const dot = document.getElementById('connection-indicator');
         try {
