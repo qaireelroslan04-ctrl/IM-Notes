@@ -300,6 +300,17 @@
     </div>
 </div>
 
+<div id="template-modal" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">Choose a Template</div>
+        <div class="modal-body" id="template-list">
+            </div>
+        <div style="padding:12px; text-align:right; border-top:1px solid var(--border-color);">
+            <button class="btn-sm" onclick="document.getElementById('template-modal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <aside id="app-sidebar">
     <div class="sidebar-header">
         <div class="app-branding">
@@ -384,10 +395,11 @@
 
         <button class="fmt-btn" onclick="createLink()" title="Link">🔗</button>
         <input type="file" id="img-upload" hidden accept="image/*">
-        <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Img</button>
-        <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Vid</button>
-        <button class="fmt-btn" onclick="insertTable()" title="Insert Table">tbl</button>
+        <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Image</button>
+        <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Youtube Video</button>
+        <button class="fmt-btn" onclick="insertTable()" title="Insert Table">Table</button>
         <button class="fmt-btn" onclick="fmt('insertHorizontalRule')" title="Divider">——</button>
+        <button class="fmt-btn" onclick="openTemplatePicker()" title="Insert Template">📋 Template</button>
     </div>
 
     <div class="editor-scroll" onclick="focusEditor()">
@@ -736,6 +748,82 @@
             // CHANGED: push -> unshift (Adds to top)
             parent.children.unshift({ id: Date.now().toString(), title: name, type: 'folder', isOpen: true, children: [] });
             parent.isOpen = true; saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
+        }
+    }
+
+    // --- TEMPLATE SYSTEM LOGIC ---
+
+    async function openTemplatePicker() {
+        // 1. Find the "Templates" folder
+        const templateFolder = vaultData.find(n => n.type === 'folder' && n.title.toLowerCase() === 'templates');
+    
+        if (!templateFolder) {
+            if(confirm('No "Templates" folder found. Create one now?')) {
+                // Create the folder automatically
+                vaultData.unshift({ 
+                    id: Date.now().toString(), 
+                    title: 'Templates', 
+                    type: 'folder', 
+                    isOpen: true, 
+                    children: [] 
+                });
+                saveStructureToDB();
+                renderTree(vaultData, document.getElementById('file-tree'));
+                alert('Folder created! Add some notes inside "Templates" to use them.');
+            }
+            return;
+        }
+    
+        if (!templateFolder.children || templateFolder.children.length === 0) {
+            alert('The "Templates" folder is empty. Create a note inside it first.');
+            return;
+        }
+    
+        // 2. Render list of templates
+        const listContainer = document.getElementById('template-list');
+        listContainer.innerHTML = '';
+    
+        templateFolder.children.forEach(file => {
+            if(file.type === 'file') {
+                const div = document.createElement('div');
+                div.className = 'folder-picker-item'; // Reuse existing style
+                div.innerHTML = `📄 ${file.title}`;
+                div.onclick = () => applyTemplate(file.id);
+                listContainer.appendChild(div);
+            }
+        });
+    
+        // 3. Show Modal
+        document.getElementById('template-modal').style.display = 'flex';
+    }
+    
+    async function applyTemplate(templateId) {
+        // Show loading state
+        const modalBody = document.getElementById('template-list');
+        modalBody.innerHTML = '<div style="padding:10px; text-align:center;">Loading template...</div>';
+    
+        try {
+            // 1. Fetch the content of the template note
+            // We use the same 'notes' collection you already have
+            const doc = await db.collection('notes').doc(templateId).get();
+            
+            if (doc.exists) {
+                const tmplContent = doc.data().content;
+                
+                // 2. Insert into Editor
+                // We append it to the current cursor position
+                if (tmplContent) {
+                    fmt('insertHTML', tmplContent);
+                }
+            }
+            
+            // 3. Close Modal
+            document.getElementById('template-modal').style.display = 'none';
+            
+        } catch (error) {
+            console.error("Error loading template:", error);
+            alert("Failed to load template content.");
+            document.getElementById('template-modal').style.display = 'none';
         }
     }
 
