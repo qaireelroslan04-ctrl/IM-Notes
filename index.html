@@ -891,21 +891,46 @@
         const a = document.createElement('a'); a.href = dataStr; a.download = "im_vault_backup.json"; a.click();
     }
     function importData() {
-        const input = document.createElement('input'); input.type = 'file';
-        input.onchange = e => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.readAsText(file, 'UTF-8');
-            reader.onload = readerEvent => {
-                try {
-                    vaultData = JSON.parse(readerEvent.target.result);
-                    saveStructureToDB(); renderTree(vaultData, document.getElementById('file-tree'));
-                    alert("Import Successful");
-                } catch(err) { alert("Invalid JSON"); }
+    const input = document.createElement('input'); input.type = 'file';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+        reader.onload = readerEvent => {
+            try {
+                // 1. Parse the new data
+                const importedData = JSON.parse(readerEvent.target.result);
+                
+                // 2. CHECK: Is the imported data an array?
+                if (Array.isArray(importedData)) {
+                    // 3. MERGE: Push new items into existing vaultData
+                    // Optional: Wrap import in a folder so it's tidy
+                    const importFolder = {
+                        id: Date.now().toString(),
+                        title: "Imported " + new Date().toLocaleDateString(),
+                        type: 'folder',
+                        isOpen: true,
+                        children: importedData
+                    };
+                    
+                    // Add to the top of your list
+                    vaultData.unshift(importFolder); 
+                    
+                    // 4. Save and Render
+                    saveStructureToDB(); 
+                    renderTree(vaultData, document.getElementById('file-tree'));
+                    alert("Collection Added Successfully");
+                } else {
+                    alert("Invalid Data Format: Root must be an array");
+                }
+            } catch(err) { 
+                console.error(err);
+                alert("Invalid JSON"); 
             }
         }
-        input.click();
     }
+    input.click();
+}
 </script>
 
 </body>
