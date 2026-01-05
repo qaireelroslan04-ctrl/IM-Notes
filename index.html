@@ -1260,23 +1260,46 @@
         }
         e.target.value = '';
     }
+    // --- FIXED PASTE HANDLER (Images + Text Cleaner) ---
     function handlePaste(e) {
         if (!isEditMode) return;
-        e.preventDefault();
     
-        // 1. Get Clipboard Data
-        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        const html = (e.clipboardData || window.clipboardData).getData('text/html');
-    
-        // 2. Clean it!
-        // We prefer HTML if available, but cleaning plain text is easier for the LaTeX stuff
-        let contentToPaste = html || text;
+        // 1. Check for Images FIRST
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        let hasImage = false;
         
-        // Run our cleaner
-        contentToPaste = cleanNotebookLMText(contentToPaste);
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                hasImage = true;
+                const blob = items[i].getAsFile();
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    // Insert Image
+                    document.execCommand('insertHTML', false, `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`);
+                };
+                reader.readAsDataURL(blob);
+                return; // Stop processing, we found our image
+            }
+        }
     
-        // 3. Insert it
-        document.execCommand('insertHTML', false, contentToPaste);
+        // 2. If NO Image, handle as Text/HTML (with Cleaning)
+        if (!hasImage) {
+            e.preventDefault();
+            
+            // Get Data
+            const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+            const html = (e.clipboardData || window.clipboardData).getData('text/html');
+    
+            // Prefer HTML, fallback to text
+            let contentToPaste = html || text;
+    
+            // Run the NotebookLM Cleaner
+            if (contentToPaste) {
+                contentToPaste = cleanNotebookLMText(contentToPaste);
+                document.execCommand('insertHTML', false, contentToPaste);
+            }
+        }
     }
     function insertVideo() { 
         const url = prompt("Paste YouTube URL:"); 
