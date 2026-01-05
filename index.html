@@ -656,11 +656,10 @@
         // Always clear timer
         clearTimeout(holdTimer);
         
-        // If we were dragging, execute the Drop
         if (isDragging) {
             e.preventDefault();
             
-            // 1. Find Drop Target
+            // 1. Find Drop Target based on finger position
             const touch = e.changedTouches[0];
             const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
             const itemWrapper = targetEl ? targetEl.closest('.tree-item') : null;
@@ -671,23 +670,29 @@
                 
                 // Prevent dropping on self
                 if(dropId !== activeNode.id) {
-                    // Mock the Desktop "handleDrop" event
+                    
+                    // CRITICAL FIX: Set the global variable used by handleDrop
                     draggedNodeId = activeNode.id; 
+                    
                     const dropTargetNode = findNode(vaultData, dropId);
+                    
                     if(dropTargetNode) {
+                        // Pass a safe mock event object
                         handleDrop({ preventDefault: ()=>{} }, dropTargetNode);
                     }
                 }
             }
         }
         
-        // Always Cleanup
+        // Visual Cleanup
         removeGhost();
         document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
         
         isDragging = false;
         activeNode = null;
-        // Note: wasGestureActive stays true briefly to block the 'onclick'
+        
+        // Keep 'wasGestureActive' true briefly so the 'onclick' (which fires after touchend) knows to ignore this tap
+        setTimeout(() => { wasGestureActive = false; }, 50);
     }
     
     // --- VISUAL HELPERS ---
@@ -1063,9 +1068,11 @@
     function handleDrop(e, targetNode) {
         e.preventDefault();
         
-        // Remove visual cue
-        const targetEl = e.target.closest('.tree-item');
-        if(targetEl) targetEl.classList.remove('drag-over');
+        // FIX: Check if e.target exists before using it (Prevents mobile crash)
+        if (e.target) {
+            const targetEl = e.target.closest('.tree-item');
+            if(targetEl) targetEl.classList.remove('drag-over');
+        }
         
         // Safety checks
         if(!draggedNodeId || draggedNodeId === targetNode.id) return;
@@ -1087,12 +1094,9 @@
     
         // 2. Insert node at new location (Before the target node)
         if(movedNode) {
-            // Find the array that contains the targetNode
             const parentArr = getParentArray(vaultData, targetNode.id);
             if(parentArr) {
                 const targetIdx = parentArr.findIndex(n => n.id === targetNode.id);
-                
-                // Insert at the specific index (This is the reordering magic)
                 parentArr.splice(targetIdx, 0, movedNode);
                 
                 // Save and Rerender
@@ -1101,7 +1105,7 @@
             }
         }
         
-        // Reset
+        // Reset global ID
         draggedNodeId = null;
     }
     
