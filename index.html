@@ -420,6 +420,7 @@
         <button class="fmt-btn" onclick="triggerImageUpload()" title="Insert Image">Image</button>
         <button class="fmt-btn" onclick="insertVideo()" title="Insert YouTube">Youtube Video</button>
         <button class="fmt-btn" onclick="insertTable()" title="Insert Table">Table</button>
+        <button class="fmt-btn" onclick="deleteTable()" title="Delete Table" style="color:var(--danger);">Del Tbl</button>
         <button class="fmt-btn" onclick="fmt('insertHorizontalRule')" title="Divider">——</button>
         <button class="fmt-btn" onclick="openTemplatePicker()" title="Insert Template">📋 Template</button>
     </div>
@@ -1403,10 +1404,35 @@
     editor.addEventListener('mouseup', updateToolbarState);
     editor.addEventListener('click', updateToolbarState);
 
+
+    // --- TABLE MANAGEMENT ---
+    
+    // 1. New Function: Deletes the table you are currently typing in
+    function deleteTable() {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        
+        // Find the closest table to the cursor
+        let node = selection.anchorNode;
+        // If node is text, get parent. If node is element, use it.
+        const element = node.nodeType === 3 ? node.parentElement : node;
+        const table = element.closest('table');
+    
+        if (table) {
+            if(confirm("Delete this table?")) {
+                table.remove();
+            }
+        } else {
+            alert("Click inside the table you want to delete first.");
+        }
+    }
+    
+    // 2. Updated Insert Function (Prevents "Trapped Cursor" bug)
     function insertTable() {
-        const rows = 2; // Default 2x2
+        const rows = 2;
         const cols = 2;
         let html = '<table style="width:100%; border-collapse: collapse; margin: 10px 0; border: 1px solid var(--border-color);">';
+        
         for (let i = 0; i < rows; i++) {
             html += '<tr>';
             for (let j = 0; j < cols; j++) {
@@ -1414,9 +1440,14 @@
             }
             html += '</tr>';
         }
-        html += '</table><br>'; // Add break so user can type after
+        html += '</table>';
+        
+        // CRITICAL FIX: Add a paragraph AFTER the table so you can click/type below it
+        html += '<p><br></p>'; 
+        
         fmt('insertHTML', html);
     }
+    
     function toggleTheme() {
         const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
