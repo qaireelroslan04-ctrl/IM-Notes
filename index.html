@@ -579,9 +579,10 @@
         });
     }
 
-    // --- MOBILE DRAG & DROP SYSTEM ---
+    // --- MOBILE DRAG & DROP SYSTEM (FIXED) ---
     let mobileDragActive = false;
-    let mobileDragTimer = null;
+    let mobileDragTimer = null; // The timer for dragging
+    let longPressTimer = null;  // The timer for Context Menu
     let touchStartX = 0;
     let touchStartY = 0;
     let ghostEl = null;
@@ -593,28 +594,24 @@
         touchStartY = touch.clientY;
         draggedMobileNode = node;
         
-        // Logic: 
-        // 1. Long Press (600ms) = Context Menu
-        // 2. Medium Press (300ms) = Drag Mode
+        // Reset states
+        mobileDragActive = false;
         
-        // Clear old timers
+        // Clear ANY existing timers to prevent conflicts
         clearTimeout(longPressTimer);
         clearTimeout(mobileDragTimer);
         
-        // Timer 1: Context Menu (Longest)
+        // 1. Timer for Context Menu (Long Press - 600ms)
         longPressTimer = setTimeout(() => {
-            if(!mobileDragActive) {
-                showContextMenu(touch.clientX, touch.clientY, node, getParentArray(vaultData, node.id), 0);
-            }
+            // Only show menu if we haven't started dragging/scrolling
+            showContextMenu(touch.clientX, touch.clientY, node, getParentArray(vaultData, node.id), 0);
         }, 600);
     
-        // Timer 2: Drag Activation (Medium)
+        // 2. Timer for Drag Mode (Medium Press - 300ms)
         mobileDragTimer = setTimeout(() => {
-            // If we haven't moved much, Activate Drag!
             mobileDragActive = true;
             initMobileDragGhost(touch.clientX, touch.clientY, node.title);
-            // We can vibrate to give feedback
-            if(navigator.vibrate) navigator.vibrate(50);
+            if(navigator.vibrate) navigator.vibrate(50); // Feedback
         }, 300);
     }
     
@@ -623,40 +620,22 @@
         const moveX = Math.abs(touch.clientX - touchStartX);
         const moveY = Math.abs(touch.clientY - touchStartY);
     
-        // 1. If moved slightly, cancel the Context Menu timer (it's a scroll or drag)
+        // FIX: If we move even slightly (scrolling), CANCEL EVERYTHING
         if (moveX > 5 || moveY > 5) {
             clearTimeout(longPressTimer);
+            clearTimeout(mobileDragTimer);
+            
+            // Only continue logic if we are ALREADY in drag mode
+            if (!mobileDragActive) return; 
         }
     
-        // 2. DETECT DRAG INTENT:
-        // If moving mostly vertically and holding for a split second, start dragging
-        // We add a threshold so normal scrolling doesn't trigger it immediately
-        if (!mobileDragActive && moveX > 10) { 
-            // Horizontal swipe? Usually ignored or Sidebar. Let's focus on intentional drag.
-            // For this app, we will use a "Hold then Move" logic.
-            // If the context menu timer hasn't fired yet, and we move significantly...
-            // Actually, to make it simple: Long press creates context menu. 
-            // To drag on mobile, we need an immediate visual cue or a handle. 
-            
-            // IMPROVED LOGIC: Immediate drag if moving horizontal (indent/move) 
-            // OR simply rely on the visual "Ghost".
-        }
-        
-        // Let's implement: If you move significantly X or Y, we start dragging visually
-        // ONLY IF we interpret it as a drag. 
-        // To separate Scroll vs Drag:
-        // If user presses and immediately moves > 10px, we assume Scroll (default browser behavior).
-        // If user presses, WAITS 200ms, then moves, we assume Drag.
-        
-        // For now, let's implement the logic that activates dragging 
-        // if we already decided it's a drag operation. 
-        
+        // Logic to move the ghost element if we are dragging
         if (mobileDragActive && ghostEl) {
-            e.preventDefault(); // Stop scrolling
+            e.preventDefault(); // Stop scrolling only if dragging
             ghostEl.style.left = (touch.clientX + 10) + 'px';
             ghostEl.style.top = (touch.clientY + 10) + 'px';
             
-            // Highlight Drop Target
+            // Visual cue for drop target
             const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
             const item = targetEl ? targetEl.closest('.tree-item') : null;
             
@@ -665,8 +644,42 @@
         }
     }
     
-    // Special Logic: We activate Drag Mode if the user holds for 300ms (shorter than context menu)
-    // Modify the renderTree touchstart to set a specific drag timer
+    function handleTouchEnd(e, targetNode) {
+        // FIX: Crucial! Cancel timers immediately when finger lifts
+        clearTimeout(longPressTimer);
+        clearTimeout(mobileDragTimer);
+    
+        if (mobileDragActive) {
+            e.preventDefault(); // Stop any click events if we were dragging
+            
+            // Remove Ghost
+            if(ghostEl) { document.body.removeChild(ghostEl); ghostEl = null; }
+            document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+            
+            // Find drop target
+            const touch = e.changedTouches[0];
+            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+            const item = targetEl ? targetEl.closest('.tree-item') : null;
+    
+            if (item && draggedMobileNode) {
+                const dropId = item.dataset.id; // Relies on the data-id we added to renderTree
+                
+                if(dropId && dropId !== draggedMobileNode.id) {
+                     // Trigger the existing drop logic
+                     draggedNodeId = draggedMobileNode.id; 
+                     const dropTargetNode = findNode(vaultData, dropId);
+                     if(dropTargetNode) handleDrop({ preventDefault: ()=>{} }, dropTargetNode);
+                }
+            }
+            
+            mobileDragActive = false;
+            draggedMobileNode = null;
+        } 
+        // If mobileDragActive was FALSE, we do nothing here. 
+        // The browser will automatically fire the standard 'click' event, 
+        // which will trigger your openNote function.
+    }
+    
     function initMobileDragGhost(x, y, title) {
         if(ghostEl) document.body.removeChild(ghostEl);
         ghostEl = document.createElement('div');
@@ -676,44 +689,6 @@
         ghostEl.style.left = x + 'px';
         ghostEl.style.top = y + 'px';
         document.body.appendChild(ghostEl);
-    }
-    
-    function handleTouchEnd(e, targetNode) {
-        clearTimeout(longPressTimer); // Cancel context menu
-        
-        if (mobileDragActive) {
-            e.preventDefault();
-            // Remove Ghost
-            if(ghostEl) { document.body.removeChild(ghostEl); ghostEl = null; }
-            document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
-            
-            // Find what we dropped on
-            const touch = e.changedTouches[0];
-            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            const item = targetEl ? targetEl.closest('.tree-item') : null;
-    
-            if (item && draggedMobileNode) {
-                // We need the ID of the drop target
-                // But our DOM structure in renderTree doesn't strictly store ID in dataset everywhere
-                // We need to match the text or rely on index.
-                // Let's look up the Node ID from our Vault Data based on the Click Handler or Dataset
-                
-                // FIX: Add data-id to renderTree for this to work perfectly
-                // (See Step 4 below)
-                const dropId = item.getAttribute('data-id');
-                if(dropId && dropId !== draggedMobileNode.id) {
-                     // Trigger the existing logic
-                     // We fake the dragID for the existing logic
-                     draggedNodeId = draggedMobileNode.id; 
-                     // We simulate a drop target node object
-                     const dropTargetNode = findNode(vaultData, dropId);
-                     if(dropTargetNode) handleDrop({ preventDefault: ()=>{} }, dropTargetNode);
-                }
-            }
-            
-            mobileDragActive = false;
-            draggedMobileNode = null;
-        }
     }
     
     // --- EDITOR SMART FORMATTING ---
