@@ -51,6 +51,13 @@
             --header-bg: rgba(255, 255, 255, 0.85);
         }
 
+        /* --- ACTIVE TOOLBAR BUTTONS --- */
+        .fmt-btn.active {
+            background-color: rgba(99, 102, 241, 0.2); /* Light Purple */
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+        }
+
         /* --- DRAG AND DROP VISUALS --- */
         .tree-item[draggable="true"] {
             cursor: grab;
@@ -381,6 +388,7 @@
                     <button onclick="initializeWithPDFData()" style="color: var(--accent-color); font-weight:600;">Initialize / Reset DB</button>
                     <button onclick="exportData()">Export JSON</button>
                     <button onclick="importData()">Import JSON</button>
+                    <button onclick="sanitizeCurrentNote()">✨ Clean NotebookLM Text</button>
                 </div>
             </div>
         </div>
@@ -804,6 +812,55 @@
         }
     });
 
+    // --- NOTEBOOKLM CLEANER UTILITY ---
+    function cleanNotebookLMText(html) {
+        // 1. Fix LaTeX Equations (e.g., $V_1$, $\ge$)
+        let clean = html
+            // Replace $\ge$ with ≥
+            .replace(/\$\\ge/g, '≥')
+            .replace(/\$\\le/g, '≤')
+            .replace(/\$\\approx/g, '≈')
+            .replace(/\$\\pm/g, '±')
+            
+            // Fix Subscripts like $V_1$ or $V_{12}$
+            // This looks for a letter, underscore, then a number inside $...$
+            .replace(/\$([a-zA-Z]+)_\{?(\d+)\}?\$?/g, (match, letter, num) => {
+                // Convert number to subscript char
+                const subs = "₀₁₂₃₄₅₆₇₈₉";
+                const subNum = num.split('').map(d => subs[parseInt(d)] || d).join('');
+                return letter + subNum;
+            })
+    
+            // Remove remaining $ signs often used as wrappers
+            .replace(/\$([^\$]+)\$/g, '$1');
+    
+        // 2. Fix weird citation bubbles (e.g., "process 10 ." -> "process.")
+        // NotebookLM often leaves gaps like "word 10 11 ."
+        // We remove isolated number groups that look like citations if they are just floating
+        // Caution: We don't want to delete "Type 2 Diabetes".
+        // Strategy: Look for numbers specifically preceded by space and followed by punctuation or another citation number
+        
+        // Simple cleaner for the specific " 13 " style artifacts if desired:
+        // clean = clean.replace(/(\s\d{1,2})+\s?(\.|,)/g, '$2'); 
+    
+        return clean;
+    }
+    
+    // Function to clean the CURRENT note (Retroactive fix)
+    function sanitizeCurrentNote() {
+        const editor = document.getElementById('editor');
+        const original = editor.innerHTML;
+        const cleaned = cleanNotebookLMText(original);
+        
+        if(original !== cleaned) {
+            editor.innerHTML = cleaned;
+            if(currentNoteId) saveNoteContent(currentNoteId);
+            alert("Note cleaned of NotebookLM artifacts!");
+        } else {
+            alert("No artifacts found to clean.");
+        }
+    }
+
     // --- 5. OPERATIONS ---
     function addRootFolder() {
         const name = prompt("Name of new Main Topic:");
@@ -1205,14 +1262,21 @@
     }
     function handlePaste(e) {
         if (!isEditMode) return;
-        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                e.preventDefault(); const blob = items[i].getAsFile(); const reader = new FileReader();
-                reader.onload = function(event) { document.execCommand('insertHTML', false, `<img src="${event.target.result}" style="max-width:100%; border-radius:8px; margin:10px 0;">`); };
-                reader.readAsDataURL(blob); return;
-            }
-        }
+        e.preventDefault();
+    
+        // 1. Get Clipboard Data
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        const html = (e.clipboardData || window.clipboardData).getData('text/html');
+    
+        // 2. Clean it!
+        // We prefer HTML if available, but cleaning plain text is easier for the LaTeX stuff
+        let contentToPaste = html || text;
+        
+        // Run our cleaner
+        contentToPaste = cleanNotebookLMText(contentToPaste);
+    
+        // 3. Insert it
+        document.execCommand('insertHTML', false, contentToPaste);
     }
     function insertVideo() { 
         const url = prompt("Paste YouTube URL:"); 
@@ -1270,6 +1334,41 @@
         const url = prompt("Enter Link URL:");
         if (url) fmt('createLink', url);
     }
+
+    // --- TOOLBAR STATE MANAGER ---
+    function updateToolbarState() {
+        if (!isEditMode) return;
+        
+        // List of commands to check
+        const cmds = [
+            { cmd: 'bold', btn: "fmt('bold')" },
+            { cmd: 'italic', btn: "fmt('italic')" },
+            { cmd: 'underline', btn: "fmt('underline')" },
+            { cmd: 'strikeThrough', btn: "fmt('strikeThrough')" },
+            { cmd: 'insertUnorderedList', btn: "fmt('insertUnorderedList')" },
+            { cmd: 'insertOrderedList', btn: "fmt('insertOrderedList')" }
+        ];
+    
+        cmds.forEach(item => {
+            // Query the browser: "Is the text at cursor Bold?"
+            const isActive = document.queryCommandState(item.cmd);
+            
+            // Find the button by its onclick attribute (simple way to match without adding IDs)
+            // Or you can add IDs to buttons. This selector is a quick hack that works with your current code.
+            const btn = document.querySelector(`button[onclick="${item.btn}"]`);
+            
+            if (btn) {
+                if (isActive) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        });
+    }
+    
+    // Attach listeners to trigger the check
+    const editor = document.getElementById('editor');
+    editor.addEventListener('keyup', updateToolbarState);
+    editor.addEventListener('mouseup', updateToolbarState);
+    editor.addEventListener('click', updateToolbarState);
 
     function insertTable() {
         const rows = 2; // Default 2x2
