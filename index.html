@@ -812,36 +812,46 @@
         }
     });
 
-    // --- NOTEBOOKLM CLEANER UTILITY ---
+    // --- ADVANCED NOTEBOOKLM CLEANER (v2.0) ---
     function cleanNotebookLMText(html) {
-        // 1. Fix LaTeX Equations (e.g., $V_1$, $\ge$)
-        let clean = html
-            // Replace $\ge$ with ≥
-            .replace(/\$\\ge/g, '≥')
-            .replace(/\$\\le/g, '≤')
-            .replace(/\$\\approx/g, '≈')
-            .replace(/\$\\pm/g, '±')
-            
-            // Fix Subscripts like $V_1$ or $V_{12}$
-            // This looks for a letter, underscore, then a number inside $...$
-            .replace(/\$([a-zA-Z]+)_\{?(\d+)\}?\$?/g, (match, letter, num) => {
-                // Convert number to subscript char
-                const subs = "₀₁₂₃₄₅₆₇₈₉";
-                const subNum = num.split('').map(d => subs[parseInt(d)] || d).join('');
-                return letter + subNum;
-            })
+        let clean = html;
     
-            // Remove remaining $ signs often used as wrappers
-            .replace(/\$([^\$]+)\$/g, '$1');
+        // 1. Replace Standard Math Symbols (Order matters!)
+        clean = clean
+            .replace(/\\ge/g, '≥')          // \ge -> ≥
+            .replace(/\\le/g, '≤')          // \le -> ≤
+            .replace(/\\approx/g, '≈')      // \approx -> ≈
+            .replace(/\\pm/g, '±')          // \pm -> ±
+            .replace(/\\ne/g, '≠')          // \ne -> ≠
+            .replace(/\\times/g, '×')       // \times -> ×
+            .replace(/\\rightarrow/g, '→')  // \rightarrow -> →
+            .replace(/\\leftarrow/g, '←')   // \leftarrow -> ←
+            .replace(/\^\\circ/g, '°')      // ^\circ -> °
+            .replace(/\^\{\\circ\}/g, '°'); // ^{ \circ } -> °
     
-        // 2. Fix weird citation bubbles (e.g., "process 10 ." -> "process.")
-        // NotebookLM often leaves gaps like "word 10 11 ."
-        // We remove isolated number groups that look like citations if they are just floating
-        // Caution: We don't want to delete "Type 2 Diabetes".
-        // Strategy: Look for numbers specifically preceded by space and followed by punctuation or another citation number
-        
-        // Simple cleaner for the specific " 13 " style artifacts if desired:
-        // clean = clean.replace(/(\s\d{1,2})+\s?(\.|,)/g, '$2'); 
+        // 2. Remove LaTeX "text" wrappers
+        // Converts \text{C} -> C, \text{words} -> words
+        clean = clean.replace(/\\text\{([^}]+)\}/g, '$1');
+    
+        // 3. Convert Subscripts (e.g., V_1 -> V₁, V_{12} -> V₁₂)
+        // Matches a letter followed by underscore and number (with or without brackets)
+        clean = clean.replace(/([a-zA-Z])_\{?(\d+)\}?/g, (match, letter, num) => {
+            const subs = "₀₁₂₃₄₅₆₇₈₉";
+            const subNum = num.split('').map(d => subs[parseInt(d)] || d).join('');
+            return letter + subNum;
+        });
+    
+        // 4. Convert Superscripts (e.g., ^2 -> ²)
+        // Matches carat followed by number
+        clean = clean.replace(/\^\{?(\d+)\}?/g, (match, num) => {
+            const supers = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+            const superNum = num.split('').map(d => supers[parseInt(d)] || d).join('');
+            return superNum;
+        });
+    
+        // 5. Final Cleanup: Remove all remaining Dollar Signs ($)
+        // This handles cases like "$V₁$-$V₆$" becoming "V₁-V₆"
+        clean = clean.replace(/\$/g, '');
     
         return clean;
     }
