@@ -494,7 +494,7 @@
     });
 
     // --- 4. TREE RENDERER (Ultra Compact) ---
-    // --- UPDATED TREE RENDERER (v1.7.2) ---
+    // --- FIXED TREE RENDERER (Step 1) ---
     function renderTree(nodes, container, depth = 0) {
         container.innerHTML = '';
         if(depth === 0) container.className = 'file-tree'; 
@@ -507,15 +507,16 @@
         nodes.forEach((node, index) => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'tree-item';
-            itemDiv.dataset.id = node.id;
             
-            // Desktop Dragging
+            // CRUCIAL FIX: This allows the Drop function to find the ID
+            itemDiv.dataset.id = node.id; 
+            
+            // Desktop Drag attribute
             itemDiv.setAttribute('draggable', 'true');
             
             if (currentNoteId === node.id) itemDiv.classList.add('active');
             if (selectedNodes.has(node.id)) itemDiv.classList.add('selected');
             
-            // Sidebar styling for selection mode
             if (isSelectionMode) document.getElementById('app-sidebar').classList.add('selection-mode');
             
             const arrow = node.type === 'folder' 
@@ -532,28 +533,25 @@
                 </div>
             `;
     
-            // --- DESKTOP DRAG EVENTS ---
+            // --- DESKTOP EVENTS ---
             itemDiv.addEventListener('dragstart', (e) => handleDragStart(e, node));
             itemDiv.addEventListener('dragover', (e) => handleDragOver(e));
             itemDiv.addEventListener('dragleave', (e) => { e.target.classList.remove('drag-over'); });
             itemDiv.addEventListener('drop', (e) => handleDrop(e, node));
-    
-            // --- MOBILE TOUCH EVENTS (Custom Logic) ---
-            // We use a specific handler to distinguish scrolling vs dragging
-            itemDiv.addEventListener('touchstart', (e) => handleTouchStart(e, node));
-            itemDiv.addEventListener('touchmove', (e) => handleTouchMove(e));
-            itemDiv.addEventListener('touchend', (e) => handleTouchEnd(e, node));
-    
-            // --- CONTEXT MENU (Desktop) ---
             itemDiv.addEventListener('contextmenu', (e) => {
                 e.preventDefault(); e.stopPropagation();
                 showContextMenu(e.clientX, e.clientY, node, nodes, index);
             });
     
-            // --- CLICK HANDLING ---
+            // --- MOBILE EVENTS (The Fix) ---
+            itemDiv.addEventListener('touchstart', (e) => handleTouchStart(e, node));
+            itemDiv.addEventListener('touchmove', (e) => handleTouchMove(e));
+            itemDiv.addEventListener('touchend', (e) => handleTouchEnd(e, node));
+    
+            // --- CLICK ---
             itemDiv.onclick = (e) => {
-                // If we just finished a drag, ignore the click
-                if(mobileDragActive) return; 
+                // If we just finished a gesture, ignore the click
+                if(wasGestureActive) { wasGestureActive = false; return; }
                 
                 if (isSelectionMode) {
                     toggleNodeSelection(node.id);
@@ -564,7 +562,7 @@
                         renderTree(vaultData, document.getElementById('file-tree'));
                     } else {
                         openNote(node);
-                        if(window.innerWidth <= 768) toggleSidebar(false); // Auto-close on mobile
+                        if(window.innerWidth <= 768) toggleSidebar(false);
                     }
                 }
             };
@@ -579,116 +577,151 @@
         });
     }
 
-    // --- MOBILE DRAG & DROP SYSTEM (FIXED) ---
-    let mobileDragActive = false;
-    let mobileDragTimer = null; // The timer for dragging
-    let longPressTimer = null;  // The timer for Context Menu
+    // --- ROBUST MOBILE GESTURE SYSTEM (Step 2) ---
     let touchStartX = 0;
     let touchStartY = 0;
+    let touchStartTime = 0;
+    let activeNode = null;
+    
+    let isDragging = false;     // Are we currently dragging a ghost?
+    let holdTimer = null;       // Timer for Context Menu
     let ghostEl = null;
-    let draggedMobileNode = null;
+    let wasGestureActive = false; // Flag to prevent 'click' after a drag/menu
     
     function handleTouchStart(e, node) {
         const touch = e.touches[0];
         touchStartX = touch.clientX;
         touchStartY = touch.clientY;
-        draggedMobileNode = node;
+        touchStartTime = Date.now();
+        activeNode = node;
         
-        // Reset states
-        mobileDragActive = false;
-        
-        // Clear ANY existing timers to prevent conflicts
-        clearTimeout(longPressTimer);
-        clearTimeout(mobileDragTimer);
-        
-        // 1. Timer for Context Menu (Long Press - 600ms)
-        longPressTimer = setTimeout(() => {
-            // Only show menu if we haven't started dragging/scrolling
-            showContextMenu(touch.clientX, touch.clientY, node, getParentArray(vaultData, node.id), 0);
-        }, 600);
+        isDragging = false;
+        wasGestureActive = false;
     
-        // 2. Timer for Drag Mode (Medium Press - 300ms)
-        mobileDragTimer = setTimeout(() => {
-            mobileDragActive = true;
-            initMobileDragGhost(touch.clientX, touch.clientY, node.title);
-            if(navigator.vibrate) navigator.vibrate(50); // Feedback
-        }, 300);
+        // cleanup any leftovers
+        clearTimeout(holdTimer);
+        if(ghostEl) removeGhost();
+    
+        // Start Timer: If held still for 500ms -> Context Menu
+        holdTimer = setTimeout(() => {
+            // If we haven't started dragging yet...
+            if (!isDragging) {
+                wasGestureActive = true; // Block the click
+                showContextMenu(touchStartX, touchStartY, node, getParentArray(vaultData, node.id), 0);
+                // Vibrate to indicate success
+                if(navigator.vibrate) navigator.vibrate(50);
+            }
+        }, 500);
     }
     
     function handleTouchMove(e) {
+        if (!activeNode) return;
+        
         const touch = e.touches[0];
         const moveX = Math.abs(touch.clientX - touchStartX);
         const moveY = Math.abs(touch.clientY - touchStartY);
     
-        // FIX: If we move even slightly (scrolling), CANCEL EVERYTHING
-        if (moveX > 5 || moveY > 5) {
-            clearTimeout(longPressTimer);
-            clearTimeout(mobileDragTimer);
-            
-            // Only continue logic if we are ALREADY in drag mode
-            if (!mobileDragActive) return; 
+        // 1. If moved > 10px, it's NOT a static hold. Cancel Context Menu.
+        if (moveX > 10 || moveY > 10) {
+            clearTimeout(holdTimer);
         }
     
-        // Logic to move the ghost element if we are dragging
-        if (mobileDragActive && ghostEl) {
-            e.preventDefault(); // Stop scrolling only if dragging
-            ghostEl.style.left = (touch.clientX + 10) + 'px';
-            ghostEl.style.top = (touch.clientY + 10) + 'px';
+        // 2. LOGIC: Drag vs Scroll
+        // If we are ALREADY dragging, move the ghost
+        if (isDragging) {
+            e.preventDefault(); // Stop Browser Scroll
+            moveGhost(touch.clientX, touch.clientY);
+            highlightDropTarget(touch.clientX, touch.clientY);
+            return;
+        }
+    
+        // 3. START DRAGGING CHECK
+        // If moved > 10px...
+        if (moveX > 10 || moveY > 10) {
+            const timeElapsed = Date.now() - touchStartTime;
             
-            // Visual cue for drop target
-            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            const item = targetEl ? targetEl.closest('.tree-item') : null;
-            
-            document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
-            if(item) item.classList.add('drag-over');
+            // If held for > 200ms before moving -> It's a Drag
+            if (timeElapsed > 200) {
+                isDragging = true;
+                wasGestureActive = true;
+                e.preventDefault(); // Stop scroll
+                createGhost(touch.clientX, touch.clientY, activeNode.title);
+                if(navigator.vibrate) navigator.vibrate(30);
+            } 
+            // If moved immediately (< 200ms) -> It's a Scroll. Do nothing.
         }
     }
     
-    function handleTouchEnd(e, targetNode) {
-        // FIX: Crucial! Cancel timers immediately when finger lifts
-        clearTimeout(longPressTimer);
-        clearTimeout(mobileDragTimer);
-    
-        if (mobileDragActive) {
-            e.preventDefault(); // Stop any click events if we were dragging
+    function handleTouchEnd(e, node) {
+        // Always clear timer
+        clearTimeout(holdTimer);
+        
+        // If we were dragging, execute the Drop
+        if (isDragging) {
+            e.preventDefault();
             
-            // Remove Ghost
-            if(ghostEl) { document.body.removeChild(ghostEl); ghostEl = null; }
-            document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
-            
-            // Find drop target
+            // 1. Find Drop Target
             const touch = e.changedTouches[0];
             const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-            const item = targetEl ? targetEl.closest('.tree-item') : null;
-    
-            if (item && draggedMobileNode) {
-                const dropId = item.dataset.id; // Relies on the data-id we added to renderTree
+            const itemWrapper = targetEl ? targetEl.closest('.tree-item') : null;
+            
+            // 2. Execute Logic
+            if (itemWrapper && itemWrapper.dataset.id && activeNode) {
+                const dropId = itemWrapper.dataset.id;
                 
-                if(dropId && dropId !== draggedMobileNode.id) {
-                     // Trigger the existing drop logic
-                     draggedNodeId = draggedMobileNode.id; 
-                     const dropTargetNode = findNode(vaultData, dropId);
-                     if(dropTargetNode) handleDrop({ preventDefault: ()=>{} }, dropTargetNode);
+                // Prevent dropping on self
+                if(dropId !== activeNode.id) {
+                    // Mock the Desktop "handleDrop" event
+                    draggedNodeId = activeNode.id; 
+                    const dropTargetNode = findNode(vaultData, dropId);
+                    if(dropTargetNode) {
+                        handleDrop({ preventDefault: ()=>{} }, dropTargetNode);
+                    }
                 }
             }
-            
-            mobileDragActive = false;
-            draggedMobileNode = null;
-        } 
-        // If mobileDragActive was FALSE, we do nothing here. 
-        // The browser will automatically fire the standard 'click' event, 
-        // which will trigger your openNote function.
+        }
+        
+        // Always Cleanup
+        removeGhost();
+        document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+        
+        isDragging = false;
+        activeNode = null;
+        // Note: wasGestureActive stays true briefly to block the 'onclick'
     }
     
-    function initMobileDragGhost(x, y, title) {
-        if(ghostEl) document.body.removeChild(ghostEl);
+    // --- VISUAL HELPERS ---
+    function createGhost(x, y, title) {
+        removeGhost(); // Ensure only one exists
         ghostEl = document.createElement('div');
         ghostEl.className = 'drag-ghost';
         ghostEl.innerText = title;
         ghostEl.style.display = 'block';
-        ghostEl.style.left = x + 'px';
-        ghostEl.style.top = y + 'px';
+        ghostEl.style.left = (x + 10) + 'px';
+        ghostEl.style.top = (y + 10) + 'px';
         document.body.appendChild(ghostEl);
+    }
+    
+    function moveGhost(x, y) {
+        if(ghostEl) {
+            ghostEl.style.left = (x + 10) + 'px';
+            ghostEl.style.top = (y + 10) + 'px';
+        }
+    }
+    
+    function removeGhost() {
+        if(ghostEl && ghostEl.parentNode) {
+            ghostEl.parentNode.removeChild(ghostEl);
+        }
+        ghostEl = null;
+    }
+    
+    function highlightDropTarget(x, y) {
+        const targetEl = document.elementFromPoint(x, y);
+        const item = targetEl ? targetEl.closest('.tree-item') : null;
+        
+        document.querySelectorAll('.tree-item.drag-over').forEach(el => el.classList.remove('drag-over'));
+        if(item) item.classList.add('drag-over');
     }
     
     // --- EDITOR SMART FORMATTING ---
